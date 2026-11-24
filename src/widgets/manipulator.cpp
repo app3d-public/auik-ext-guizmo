@@ -40,7 +40,8 @@ namespace auik::guizmo
                     base.border_radius(),
                     base.border_thickness(),
                     {base.background_color(), hover.background_color()},
-                    {base.border_color(), hover.border_color()}};
+                    {base.border_color(), hover.border_color()},
+                    hover.text_color()};
         };
         appearance.planes = {plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_YZ),
                              plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_XZ),
@@ -423,7 +424,12 @@ namespace auik::guizmo
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
             _vertices.clear();
             _indices.clear();
-            const auto tint = [this](Palette color, u32 handle) {
+            u32 plane_axis_hover_color = 0u;
+            if (std::popcount(_hover) == 2 && (_hover & _frame.enabled) == _hover)
+                plane_axis_hover_color = _frame.appearance.planes[std::countr_zero(7u ^ _hover)].axis_hover_color;
+            const auto tint = [this, plane_axis_hover_color](Palette color, u32 handle) {
+                if (plane_axis_hover_color && std::has_single_bit(handle) && (_hover & handle) != 0u)
+                    return plane_axis_hover_color;
                 const bool highlighted =
                     handle && (handle == _hover || (std::has_single_bit(handle) && (_hover & handle) != 0u));
                 return highlighted ? color.hover : color.normal;

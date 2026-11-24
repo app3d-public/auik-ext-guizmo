@@ -58,6 +58,7 @@ namespace auik::guizmo
         {
             f32 size = 0.f, rounding = 0.f, border_width = 0.f;
             Palette fill{}, border{};
+            u32 axis_hover_color = 0u;
             bool operator==(const PlaneAppearance &) const = default;
         };
 

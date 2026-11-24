@@ -66,6 +66,7 @@ guizmo-manipulator-arrow:
 guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)
+    color: (255, 180, 0)
     border-thickness: @(1px * @dpi)
 
 guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
