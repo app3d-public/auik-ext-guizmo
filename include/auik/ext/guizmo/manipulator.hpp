@@ -19,6 +19,7 @@ namespace auik::guizmo
     {
         Operation operation = Operation::move;
         u32 enabled_axes = 7u;
+        amal::vec3 view_direction{}; // From the camera toward the pivot, or parallel view direction.
         bool show_offscreen = false;
         bool show_guides = false;
     };
@@ -29,6 +30,7 @@ namespace auik::guizmo
         std::array<amal::vec2, 3> axes{}; // projected world axes in logical pixels
         u32 enabled = 7;
         u32 guides = 0;
+        amal::vec3 view_direction{};
         f32 guide_length = 0;
         amal::vec2 edge_direction{};
         bool operator==(const Frame &) const = default;
@@ -44,10 +46,11 @@ namespace auik::guizmo
         u32 begin_drag(const amal::vec2 &screen, bool drag_background = false);
         // Absolute from press: world translation, rotation in degrees, or scale factors.
         bool drag_delta(const amal::vec2 &screen, amal::vec3 &result) const;
-        void end_drag() { _drag_mask = 0; }
+        void end_drag();
         Operation operation() const { return _frame.operation; }
         // Returns an axis mask, or edge_handle for the offscreen indicator.
         static constexpr u32 edge_handle = 8;
+        void set_hover(u32 handle);
         u32 pick(const amal::vec2 &screen) const;
         StyleUpdateFlags update_style() override { return {}; }
         u32 signature() const noexcept override { return 0x8be55c13u; }
@@ -69,7 +72,8 @@ namespace auik::guizmo
         Frame _frame, _drag_frame;
         f32 _world_radius = 1.f, _drag_world_radius = 1.f;
         amal::vec2 _start{}, _center{};
-        u32 _drag_mask = 0;
+        u32 _drag_mask = 0, _hover = 0;
+        static constexpr f32 radius = 108.f;
         void place(const amal::vec2 &pivot, const Frame &frame);
         acul::vector<Segment> _segments;
         acul::vector<Triangle> _faces;
