@@ -66,9 +66,10 @@ namespace auik::guizmo
             appearance.axes[axis] = {style(axis_tags[axis]).background_color(),
                                      style(axis_tags[axis], StyleState::hover).background_color(),
                                      style(axis_tags[axis], StyleState::active).background_color()};
-        const auto locked = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_LOCKED).background_color();
-        appearance.locked = {locked, locked, locked};
+        appearance.locked_alpha = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_LOCKED).background_color() & 0xff000000u;
         appearance.dimmed_alpha = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_DIMMED).background_color() >> 24u;
+        appearance.hover_dimmed_alpha =
+            style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_DIMMED, StyleState::hover).background_color() >> 24u;
         appearance.guide_width = guide.height();
         appearance.guide_colors = {style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_X).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Y).background_color(),
@@ -339,7 +340,12 @@ namespace auik::guizmo
             const bool axis_hovered = (hover & _frame.enabled & bit) != 0u;
             const f32 shaft_width = axis_hovered ? appearance.hover_shaft_width : appearance.shaft_width;
             auto u = _frame.axes[j_axis], v = _frame.axes[k_axis];
-            auto color = (_frame.enabled & bit) ? appearance.axes[i] : appearance.locked;
+            auto color = appearance.axes[i];
+            if ((_frame.enabled & bit) == 0u)
+            {
+                const u32 locked = (color.normal & 0x00ffffffu) | appearance.locked_alpha;
+                color = {locked, locked, locked};
+            }
             if ((_frame.guides & bit) && amal::length(axis) > 1.f)
             {
                 auto end = amal::normalize(axis) * _frame.guide_length;
@@ -507,13 +513,14 @@ namespace auik::guizmo
             const u32 active_handle = _dragging ? _drag_handle : _hover;
             const u32 mask = _dragging ? _drag_mask : (_hover & (_frame.enabled | edge_handle));
             const bool dim_peers = (mask & 7u) != 0u && mask != 7u;
+            const u32 dimmed_alpha = _dragging ? appearance.dimmed_alpha : appearance.hover_dimmed_alpha;
             const auto tint = [&](Palette color, u32 handle) {
                 const bool axis_selected = std::has_single_bit(handle) && (mask & handle) != 0u;
                 const bool handle_selected = handle != 0u && handle == active_handle && (handle & mask) != 0u;
                 if (!axis_selected && !handle_selected)
                 {
                     if (!dim_peers || (handle & _frame.enabled) == 0u) return color.normal;
-                    const u32 alpha = ((color.normal >> 24u) * _frame.appearance.dimmed_alpha + 127u) / 255u;
+                    const u32 alpha = ((color.normal >> 24u) * dimmed_alpha + 127u) / 255u;
                     return (color.normal & 0x00ffffffu) | (alpha << 24u);
                 }
                 if (_dragging) return color.active;

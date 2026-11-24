@@ -130,9 +130,11 @@ guizmo-manipulator-z:
 
 guizmo-manipulator-dimmed:
     bg-color: (255, 255, 255, 0.52)
+    @hover:
+        bg-color: (255, 255, 255, 0.76)
 
 guizmo-manipulator-locked:
-    bg-color: (133, 133, 133, 0.52)
+    bg-color: (255, 255, 255, 0.52)
 
 guizmo-manipulator-guide:
     height: @(1px * @dpi)

@@ -77,8 +77,8 @@ namespace auik::guizmo
             std::array<PlaneAppearance, 3> planes{};
             PlaneAppearance locked_plane{};
             std::array<Palette, 3> axes{};
-            Palette locked{};
-            u32 dimmed_alpha = 255u;
+            u32 locked_alpha = 0xff000000u;
+            u32 dimmed_alpha = 255u, hover_dimmed_alpha = 255u;
             f32 guide_width = 0.f;
             std::array<u32, 3> guide_colors{};
             f32 rotation_width = 0.f, hover_rotation_width = 0.f;
