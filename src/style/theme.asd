@@ -63,11 +63,6 @@ guizmo-manipulator-arrow:
     width: @(10px * @dpi)
     height: @(15px * @dpi)
 
-guizmo-manipulator-center:
-    width: @(20px * @dpi)
-    height: @(1.5px * @dpi)
-    bg-color: @color-accent
-
 guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)

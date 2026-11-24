@@ -65,8 +65,6 @@ namespace auik::guizmo
         {
             f32 reach = 0.f, shaft_width = 0.f;
             amal::vec2 arrow_size{};
-            f32 center_radius = 0.f, center_width = 0.f;
-            u32 center_color = 0u;
             std::array<PlaneAppearance, 3> planes{};
             PlaneAppearance locked_plane{};
             std::array<Palette, 3> axes{};

@@ -28,15 +28,11 @@ namespace auik::guizmo
         };
         const auto &shaft = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SHAFT);
         const auto &arrow = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ARROW);
-        const auto &center = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_CENTER);
         const auto &guide = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE);
         const auto &edge = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE);
         appearance.reach = shaft.width();
         appearance.shaft_width = shaft.height();
         appearance.arrow_size = {arrow.width(), arrow.height()};
-        appearance.center_radius = center.width() * 0.5f;
-        appearance.center_width = center.height();
-        appearance.center_color = center.background_color();
         auto plane_style = [&](u32 tag) -> PlaneAppearance {
             const auto &base = style(tag);
             const auto &hover = style(tag, StyleState::hover);
@@ -315,17 +311,15 @@ namespace auik::guizmo
                 continue;
             }
             const f32 axis_length = amal::length(axis);
-            if (axis_length > appearance.center_radius + 4.f)
+            if (axis_length > 4.f)
             {
                 auto dir = amal::normalize(axis), n = normal(dir);
-                const auto start = dir * appearance.center_radius;
                 if (_frame.operation == Operation::move)
                 {
-                    const auto base =
-                        axis - dir * std::min(appearance.arrow_size.y, axis_length - appearance.center_radius);
+                    const auto base = axis - dir * std::min(appearance.arrow_size.y, axis_length);
                     const auto shoulder = n * (appearance.arrow_size.x * 0.5f);
                     const auto left = base + shoulder, right = base - shoulder;
-                    line(start, base, appearance.shaft_width, color, bit);
+                    line({}, base, appearance.shaft_width, color, bit);
                     _faces.push_back({axis, left, right, color, bit});
                     line(axis, left, 0.5f, color, bit);
                     line(axis, right, 0.5f, color, bit);
@@ -333,7 +327,7 @@ namespace auik::guizmo
                 }
                 else
                 {
-                    line(start, axis, appearance.shaft_width, color, bit);
+                    line({}, axis, appearance.shaft_width, color, bit);
                     const f32 half = appearance.scale_size * 0.5f;
                     line(axis - dir * half, axis + dir * half, appearance.scale_size, color, bit);
                     for (auto end : {axis - dir * half, axis + dir * half})
@@ -371,18 +365,6 @@ namespace auik::guizmo
                     previous = point;
                 }
         }
-        if (_frame.operation != Operation::rotate)
-        {
-            auto previous = amal::vec2{appearance.center_radius, 0.f};
-            for (int i = 1; i <= 40; ++i)
-            {
-                const f32 angle = i * (6.283185307f / 40.f);
-                const auto point = amal::vec2{std::cos(angle), std::sin(angle)} * appearance.center_radius;
-                const u32 color = _frame.enabled ? appearance.center_color : appearance.locked.normal;
-                line(previous, point, appearance.center_width, {color, color}, 0);
-                previous = point;
-            }
-        }
     }
 
     u32 Manipulator::pick(const amal::vec2 &screen) const
@@ -394,9 +376,6 @@ namespace auik::guizmo
     u32 Manipulator::hit_handle(const amal::vec2 &screen) const
     {
         auto p = screen - position();
-        if (_frame.edge_direction == amal::vec2{} && _frame.operation != Operation::rotate &&
-            amal::length(p) <= _frame.appearance.center_radius)
-            return _frame.enabled;
         auto side = [](amal::vec2 a, amal::vec2 b) { return a.x * b.y - a.y * b.x; };
         for (const auto &face : _faces)
         {
