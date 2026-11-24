@@ -32,7 +32,7 @@ namespace auik::guizmo
     {
         Operation operation = Operation::move;
         u32 enabled_axes = 7u;
-        u32 reversed_handles = 0u; // Display these handles along the negative world axis.
+        u32 reversed_handles = 0u; // Reverse these handles relative to the camera-facing orientation.
         Appearance appearance;
         amal::vec3 view_direction{}; // From the camera toward the pivot, or parallel view direction.
         bool show_offscreen = false;

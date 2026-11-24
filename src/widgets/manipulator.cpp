@@ -36,7 +36,12 @@ namespace auik::guizmo
         if (frame.operation == Operation::rotate && length > 1e-6f)
             frame.view_direction = options.view_direction / length;
         frame.enabled = options.enabled_axes & 7u;
-        frame.reversed_handles = options.reversed_handles;
+        if (frame.operation != Operation::rotate)
+        {
+            frame.reversed_handles = options.reversed_handles;
+            for (u32 axis = 0; axis < 3; ++axis)
+                if (options.view_direction[axis] < 0.f) frame.reversed_handles ^= 1u << axis;
+        }
         frame.appearance = options.appearance;
         frame.appearance.reach = std::max(frame.appearance.reach, 1.f);
         auto inset = bounds.size * 0.5f - amal::vec2{12.f, 12.f};
