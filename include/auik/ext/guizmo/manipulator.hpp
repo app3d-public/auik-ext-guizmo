@@ -37,7 +37,8 @@ namespace auik::guizmo
         bool drag_delta(const amal::vec2 &screen, amal::vec3 &result);
         void end_drag();
         Operation operation() const { return _frame.operation; }
-        // Returns an axis mask, or edge_handle for the offscreen indicator.
+        // Returns the available handle, including both bits for a plane, or edge_handle.
+        // begin_drag returns only the axes the drag can change.
         static constexpr u32 edge_handle = 8;
         void set_hover(u32 handle);
         u32 pick(const amal::vec2 &screen) const;
@@ -119,7 +120,7 @@ namespace auik::guizmo
         bool project_frame(const Projection &projection);
         f32 _world_radius = 1.f, _drag_world_radius = 1.f;
         amal::vec2 _start{}, _center{};
-        u32 _drag_mask = 0, _hover = 0;
+        u32 _drag_mask = 0, _drag_handle = 0, _hover = 0;
         bool _dragging = false;
         void place(const amal::vec2 &pivot, const Frame &frame);
         acul::vector<Segment> _segments;

@@ -155,10 +155,11 @@ namespace auik::guizmo
     u32 Manipulator::begin_drag(const amal::vec2 &screen, bool drag_background)
     {
         if (_drag_mask) end_drag();
-        auto hit = hit_handle(screen);
-        if (hit == edge_handle) return hit;
-        if ((hit & _frame.enabled) != hit) return 0;
-        if (!hit && drag_background && _frame.edge_direction == amal::vec2{})
+        const auto handle = hit_handle(screen);
+        if (handle == edge_handle) return handle;
+        auto hit = handle & _frame.enabled;
+        if (handle && !hit) return 0;
+        if (!handle && drag_background && _frame.edge_direction == amal::vec2{})
         {
             hit = _frame.enabled;
             if (_frame.operation == Operation::rotate)
@@ -173,6 +174,7 @@ namespace auik::guizmo
             }
         }
         _drag_mask = hit;
+        _drag_handle = handle;
         _drag_frame = _frame;
         _drag_world_radius = _world_radius;
         _start = screen;
@@ -245,7 +247,7 @@ namespace auik::guizmo
 
     void Manipulator::set_hover(u32 handle)
     {
-        if (_drag_mask) handle = _drag_mask;
+        if (_drag_mask) handle = _drag_handle ? _drag_handle : _drag_mask;
         if (_hover == handle) return;
         _hover = handle;
         _dirty = true;
@@ -256,12 +258,21 @@ namespace auik::guizmo
     void Manipulator::end_drag()
     {
         _drag_mask = 0;
-        if (std::exchange(_dragging, false) && _projection)
+        _drag_handle = 0;
+        const bool was_dragging = std::exchange(_dragging, false);
+        if (_frame.guides)
+        {
+            _frame.guides = 0;
+            _frame.guide_length = 0.f;
+            build_segments();
+        }
+        if (std::exchange(_hover, 0u) || was_dragging)
         {
             _dirty = true;
-            project_frame(*_projection);
+            if (detail::get_context().dirty_flags & DirtyFlagBits::destroying) return;
+            if (is_attached() && is_visible()) redraw_external(_record.render_id != AUIK_INVALID_DRAW_DATA_ID);
+            mark_host_refresh_request();
         }
-        set_hover(0);
     }
 
     void Manipulator::place(const amal::vec2 &pivot, const Frame &frame)
@@ -357,8 +368,7 @@ namespace auik::guizmo
             v = oriented(k_axis);
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
-            const auto &plane_style =
-                (_frame.enabled & plane) == plane ? appearance.planes[i] : appearance.locked_plane;
+            const auto &plane_style = (_frame.enabled & plane) ? appearance.planes[i] : appearance.locked_plane;
             const f32 half_size = plane_style.size * 0.5f;
             if (half_size <= 0.f) continue;
             const f32 low = 0.46f - half_size / appearance.reach;
@@ -388,7 +398,7 @@ namespace auik::guizmo
     u32 Manipulator::pick(const amal::vec2 &screen) const
     {
         u32 hit = hit_handle(screen);
-        return hit == edge_handle || (hit & _frame.enabled) == hit ? hit : 0u;
+        return hit == edge_handle || (hit & _frame.enabled) != 0u ? hit : 0u;
     }
 
     u32 Manipulator::hit_handle(const amal::vec2 &screen) const
@@ -442,16 +452,21 @@ namespace auik::guizmo
             _vertices.clear();
             _indices.clear();
             u32 plane_axis_hover_color = 0u;
-            if (std::popcount(_hover) == 2 && (_hover & _frame.enabled) == _hover)
+            if (std::popcount(_hover) == 2 && (_hover & _frame.enabled) != 0u)
                 plane_axis_hover_color = _frame.appearance.planes[std::countr_zero(7u ^ _hover)].axis_hover_color;
             const auto tint = [this, plane_axis_hover_color](Palette color, u32 handle) {
-                const u32 mask = _dragging ? _drag_mask : _hover;
+                const u32 active_handle = _dragging ? _drag_handle : _hover;
+                const u32 mask = _dragging ? _drag_mask : (_hover & (_frame.enabled | edge_handle));
                 const bool axis_selected = std::has_single_bit(handle) && (mask & handle) != 0u;
-                if (!handle || (handle != mask && !axis_selected)) return color.normal;
+                if (!axis_selected && (!handle || handle != active_handle || (handle & mask) == 0u))
+                    return color.normal;
                 if (_dragging) return color.active;
                 if (axis_selected && plane_axis_hover_color) return plane_axis_hover_color;
                 return color.hover;
             };
+            // Emit guides first so the solid handles cover them at the same widget depth.
+            for (const auto &s : _segments)
+                if (!s.handle) append_segment(_vertices, _indices, s.a, s.b, s.width, depth, s.color.normal, clip_id());
             for (const auto &face : _faces)
             {
                 for (auto p : {face.a, face.b, face.c})
@@ -464,7 +479,8 @@ namespace auik::guizmo
                 }
             }
             for (const auto &s : _segments)
-                append_segment(_vertices, _indices, s.a, s.b, s.width, depth, tint(s.color, s.handle), clip_id());
+                if (s.handle)
+                    append_segment(_vertices, _indices, s.a, s.b, s.width, depth, tint(s.color, s.handle), clip_id());
             _depth = depth;
             _clip = clip_id();
             _dirty = false;
