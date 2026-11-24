@@ -15,10 +15,25 @@ namespace auik::guizmo
         scale
     };
 
+    struct Appearance
+    {
+        f32 reach = 108.f;
+        f32 shaft_width = 2.5f;
+        amal::vec2 arrow_size{15.f, 19.f};
+        f32 center_radius = 10.f;
+        f32 center_width = 1.5f;
+        u32 center_color = 0xffff7248u;
+        f32 plane_size = 16.f;
+        f32 plane_rounding = 4.f;
+        bool operator==(const Appearance &) const = default;
+    };
+
     struct Options
     {
         Operation operation = Operation::move;
         u32 enabled_axes = 7u;
+        u32 reversed_handles = 0u; // Display these handles along the negative world axis.
+        Appearance appearance;
         amal::vec3 view_direction{}; // From the camera toward the pivot, or parallel view direction.
         bool show_offscreen = false;
         bool show_guides = false;
@@ -29,6 +44,8 @@ namespace auik::guizmo
         Operation operation = Operation::move;
         std::array<amal::vec2, 3> axes{}; // projected world axes in logical pixels
         u32 enabled = 7;
+        u32 reversed_handles = 0u;
+        Appearance appearance;
         u32 guides = 0;
         amal::vec3 view_direction{};
         f32 guide_length = 0;
@@ -73,7 +90,6 @@ namespace auik::guizmo
         f32 _world_radius = 1.f, _drag_world_radius = 1.f;
         amal::vec2 _start{}, _center{};
         u32 _drag_mask = 0, _hover = 0;
-        static constexpr f32 radius = 108.f;
         void place(const amal::vec2 &pivot, const Frame &frame);
         acul::vector<Segment> _segments;
         acul::vector<Triangle> _faces;

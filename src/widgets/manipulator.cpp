@@ -9,8 +9,8 @@ namespace auik::guizmo
 {
     namespace
     {
-        constexpr u32 colors[] = {detail::pack_rgba8(245, 79, 70, 255), detail::pack_rgba8(125, 212, 67, 255),
-                                  detail::pack_rgba8(72, 143, 255, 255)};
+        constexpr u32 colors[] = {detail::pack_rgba8(220, 67, 60, 255), detail::pack_rgba8(113, 192, 61, 255),
+                                  detail::pack_rgba8(65, 130, 230, 255)};
         constexpr u32 disabled = detail::pack_rgba8(133, 133, 133, 190);
         amal::vec2 normal(amal::vec2 p) { return {-p.y, p.x}; }
     } // namespace
@@ -33,11 +33,12 @@ namespace auik::guizmo
         Frame frame{};
         frame.operation = options.operation;
         const f32 length = amal::length(options.view_direction);
-        if (length > 1e-6f) frame.view_direction = options.view_direction / length;
-        if (frame.operation != Operation::rotate)
-            for (u32 axis = 0; axis < 3; ++axis)
-                frame.view_direction[axis] = frame.view_direction[axis] < 0.f ? -1.f : 1.f;
+        if (frame.operation == Operation::rotate && length > 1e-6f)
+            frame.view_direction = options.view_direction / length;
         frame.enabled = options.enabled_axes & 7u;
+        frame.reversed_handles = options.reversed_handles;
+        frame.appearance = options.appearance;
+        frame.appearance.reach = std::max(frame.appearance.reach, 1.f);
         auto inset = bounds.size * 0.5f - amal::vec2{12.f, 12.f};
         auto edge_center = bounds.offset + bounds.size * 0.5f;
         auto direction = point - edge_center;
@@ -59,7 +60,7 @@ namespace auik::guizmo
                 frame.axes[i] = (amal::vec2{column.x, column.y} - ndc * column.w) * half / w;
                 horizontal_squared += frame.axes[i].x * frame.axes[i].x;
             }
-            _world_radius = radius / std::max(std::sqrt(horizontal_squared), 1e-6f);
+            _world_radius = frame.appearance.reach / std::max(std::sqrt(horizontal_squared), 1e-6f);
             for (auto &axis : frame.axes)
             {
                 axis *= _world_radius;
@@ -138,9 +139,9 @@ namespace auik::guizmo
             result = amal::vec3{1.f};
             auto direction = _start - _center;
             if (std::has_single_bit(_drag_mask))
-                direction = _drag_frame.view_direction[axis] < 0 ? -axes[axis] : axes[axis];
+                direction = (_drag_frame.reversed_handles & (1u << axis)) ? -axes[axis] : axes[axis];
             if (amal::length(direction) < 6.f) direction = {1.f, -1.f};
-            float factor = 1.f + amal::dot(movement, amal::normalize(direction)) / radius;
+            float factor = 1.f + amal::dot(movement, amal::normalize(direction)) / _drag_frame.appearance.reach;
             for (u32 i = 0; i < 3; ++i)
                 if (_drag_mask & (1u << i)) result[i] = factor;
         }
@@ -155,7 +156,7 @@ namespace auik::guizmo
             else
             {
                 auto tangent = amal::length(u) > amal::length(v) ? u : v;
-                radians = amal::dot(movement, amal::normalize(tangent)) / radius;
+                radians = amal::dot(movement, amal::normalize(tangent)) / _drag_frame.appearance.reach;
             }
             result[axis] = radians * 57.2957795f;
         }
@@ -206,12 +207,13 @@ namespace auik::guizmo
                 line(-dir * 7.f + normal(dir) * (side * 7.f), dir * 6.f, 3.f, 0xffeeeeeeu, edge_handle);
             return;
         }
+        const auto &appearance = _frame.appearance;
         for (u32 i = 0; i < 3; ++i)
         {
             u32 bit = 1u << i;
             const u32 j_axis = (i + 1) % 3, k_axis = (i + 2) % 3;
             auto oriented = [&](u32 index) {
-                return _frame.view_direction[index] < 0.f ? -_frame.axes[index] : _frame.axes[index];
+                return (_frame.reversed_handles & (1u << index)) ? -_frame.axes[index] : _frame.axes[index];
             };
             auto axis = oriented(i);
             auto u = _frame.axes[j_axis], v = _frame.axes[k_axis];
@@ -238,14 +240,18 @@ namespace auik::guizmo
                 }
                 continue;
             }
-            if (amal::length(axis) > 3.f)
+            const f32 axis_length = amal::length(axis);
+            if (axis_length > appearance.center_radius + 4.f)
             {
                 auto dir = amal::normalize(axis), n = normal(dir);
-                line(dir * 7.f, axis, 2.6f, color, bit);
+                const auto start = dir * appearance.center_radius;
                 if (_frame.operation == Operation::move)
                 {
-                    auto base = axis - dir * 11.f;
-                    const auto left = base + n * 4.6f, right = base - n * 4.6f;
+                    const auto base =
+                        axis - dir * std::min(appearance.arrow_size.y, axis_length - appearance.center_radius);
+                    const auto shoulder = n * (appearance.arrow_size.x * 0.5f);
+                    const auto left = base + shoulder, right = base - shoulder;
+                    line(start, base, appearance.shaft_width, color, bit);
                     _faces.push_back({axis, left, right, color, bit});
                     line(axis, left, 0.5f, color, bit);
                     line(axis, right, 0.5f, color, bit);
@@ -253,6 +259,7 @@ namespace auik::guizmo
                 }
                 else
                 {
+                    line(start, axis, appearance.shaft_width, color, bit);
                     line(axis - dir * 4.f, axis + dir * 4.f, 8.f, color, bit);
                     for (auto end : {axis - dir * 4.f, axis + dir * 4.f})
                         line(end - n * 4.f, end + n * 4.f, 0.5f, color, bit);
@@ -264,16 +271,17 @@ namespace auik::guizmo
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
             color = (_frame.enabled & plane) == plane ? colors[i] : disabled;
-            // Round the square in its own plane, then project the contour. Two stronger
-            // outer edges preserve the L silhouette at oblique viewing angles.
-            constexpr float low = 0.28f, high = 0.56f, corner_radius = 5.f / radius;
+            const f32 half_size = appearance.plane_size * 0.5f;
+            const f32 low = 0.46f - half_size / appearance.reach;
+            const f32 high = 0.46f + half_size / appearance.reach;
+            const f32 corner_radius = std::min(appearance.plane_rounding, half_size) / appearance.reach;
             constexpr int arc_steps = 5;
-            constexpr amal::vec2 corners[] = {{high - corner_radius, high - corner_radius},
-                                              {low + corner_radius, high - corner_radius},
-                                              {low + corner_radius, low + corner_radius},
-                                              {high - corner_radius, low + corner_radius}};
+            const amal::vec2 corners[] = {{high - corner_radius, high - corner_radius},
+                                          {low + corner_radius, high - corner_radius},
+                                          {low + corner_radius, low + corner_radius},
+                                          {high - corner_radius, low + corner_radius}};
             const auto center = (u + v) * ((high + low) * 0.5f);
-            const u32 fill = (color & 0x00ffffffu) | 0x78000000u;
+
             auto previous = u * high + v * (low + corner_radius);
             for (int corner = 0; corner < 4; ++corner)
                 for (int step = 0; step <= arc_steps; ++step)
@@ -281,13 +289,22 @@ namespace auik::guizmo
                     const f32 angle = (corner + f32(step) / arc_steps) * 1.570796327f;
                     const auto uv = corners[corner] + amal::vec2{std::cos(angle), std::sin(angle)} * corner_radius;
                     const auto point = u * uv.x + v * uv.y;
-                    _faces.push_back({center, previous, point, fill, plane});
-                    const bool outer = corner == 0 || (corner == 1 && step == 0);
-                    line(previous, point, outer ? 2.0f : 1.0f, outer ? color : fill, plane);
+                    _faces.push_back({center, previous, point, color, plane});
+                    line(previous, point, 0.5f, color, plane);
                     previous = point;
                 }
         }
-        if (_frame.operation != Operation::rotate) line({-3, 0}, {3, 0}, 6, 0xffeeeeeeu, _frame.enabled);
+        if (_frame.operation != Operation::rotate)
+        {
+            auto previous = amal::vec2{appearance.center_radius, 0.f};
+            for (int i = 1; i <= 40; ++i)
+            {
+                const f32 angle = i * (6.283185307f / 40.f);
+                const auto point = amal::vec2{std::cos(angle), std::sin(angle)} * appearance.center_radius;
+                line(previous, point, appearance.center_width, _frame.enabled ? appearance.center_color : disabled, 0);
+                previous = point;
+            }
+        }
     }
 
     u32 Manipulator::pick(const amal::vec2 &screen) const
@@ -299,6 +316,9 @@ namespace auik::guizmo
     u32 Manipulator::hit_handle(const amal::vec2 &screen) const
     {
         auto p = screen - position();
+        if (_frame.edge_direction == amal::vec2{} && _frame.operation != Operation::rotate &&
+            amal::length(p) <= _frame.appearance.center_radius)
+            return _frame.enabled;
         auto side = [](amal::vec2 a, amal::vec2 b) { return a.x * b.y - a.y * b.x; };
         for (const auto &face : _faces)
         {
@@ -347,7 +367,12 @@ namespace auik::guizmo
             _vertices.clear();
             _indices.clear();
             const auto tint = [this](u32 color, u32 handle) {
-                return handle && handle == _hover ? (color & 0xff000000u) | 0x0068deffu : color;
+                const bool highlighted =
+                    handle && (handle == _hover || (std::has_single_bit(handle) && (_hover & handle) != 0u));
+                if (!highlighted) return color;
+                auto boost = [](u32 channel) { return std::min(channel * 11u / 10u, 255u); };
+                return detail::pack_rgba8(boost(color & 255u), boost((color >> 8u) & 255u),
+                                          boost((color >> 16u) & 255u), color >> 24u);
             };
             for (const auto &face : _faces)
             {
