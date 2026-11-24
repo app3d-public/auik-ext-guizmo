@@ -15,6 +15,10 @@ guizmo-manipulator-edge,0xC64700F9
 guizmo-manipulator-guide,0xA129CF73
 guizmo-manipulator-locked,0x7AB7E7B5
 guizmo-manipulator-plane,0xA27094D2
+guizmo-manipulator-plane-locked,0x54D8397A
+guizmo-manipulator-plane-xy,0xB6D510A0
+guizmo-manipulator-plane-xz,0x1C38BEE7
+guizmo-manipulator-plane-yz,0x1231B906
 guizmo-manipulator-rotation,0x7EE7C8E9
 guizmo-manipulator-scale,0x9D630F6D
 guizmo-manipulator-shaft,0x3F22B98B

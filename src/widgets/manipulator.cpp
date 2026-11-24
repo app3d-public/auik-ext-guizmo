@@ -29,7 +29,6 @@ namespace auik::guizmo
         const auto &shaft = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SHAFT);
         const auto &arrow = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ARROW);
         const auto &center = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_CENTER);
-        const auto &plane = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE);
         const auto &guide = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE);
         const auto &edge = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE);
         appearance.reach = shaft.width();
@@ -38,8 +37,19 @@ namespace auik::guizmo
         appearance.center_radius = center.width() * 0.5f;
         appearance.center_width = center.height();
         appearance.center_color = center.background_color();
-        appearance.plane_size = plane.width();
-        appearance.plane_rounding = plane.border_radius();
+        auto plane_style = [&](u32 tag) -> PlaneAppearance {
+            const auto &base = style(tag);
+            const auto &hover = style(tag, StyleState::hover);
+            return {base.width(),
+                    base.border_radius(),
+                    base.border_thickness(),
+                    {base.background_color(), hover.background_color()},
+                    {base.border_color(), hover.border_color()}};
+        };
+        appearance.planes = {plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_YZ),
+                             plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_XZ),
+                             plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_XY)};
+        appearance.locked_plane = plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_LOCKED);
 
         constexpr u32 axis_tags[] = {AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_X, AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_Y,
                                      AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_Z};
@@ -335,11 +345,13 @@ namespace auik::guizmo
             v = oriented(k_axis);
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
-            color = (_frame.enabled & plane) == plane ? appearance.axes[i] : appearance.locked;
-            const f32 half_size = appearance.plane_size * 0.5f;
+            const auto &plane_style =
+                (_frame.enabled & plane) == plane ? appearance.planes[i] : appearance.locked_plane;
+            const f32 half_size = plane_style.size * 0.5f;
+            if (half_size <= 0.f) continue;
             const f32 low = 0.46f - half_size / appearance.reach;
             const f32 high = 0.46f + half_size / appearance.reach;
-            const f32 corner_radius = std::min(appearance.plane_rounding, half_size) / appearance.reach;
+            const f32 corner_radius = std::clamp(plane_style.rounding, 0.f, half_size) / appearance.reach;
             constexpr int arc_steps = 5;
             const amal::vec2 corners[] = {{high - corner_radius, high - corner_radius},
                                           {low + corner_radius, high - corner_radius},
@@ -354,8 +366,8 @@ namespace auik::guizmo
                     const f32 angle = (corner + f32(step) / arc_steps) * 1.570796327f;
                     const auto uv = corners[corner] + amal::vec2{std::cos(angle), std::sin(angle)} * corner_radius;
                     const auto point = u * uv.x + v * uv.y;
-                    _faces.push_back({center, previous, point, color, plane});
-                    line(previous, point, 0.5f, color, plane);
+                    _faces.push_back({center, previous, point, plane_style.fill, plane});
+                    line(previous, point, plane_style.border_width, plane_style.border, plane);
                     previous = point;
                 }
         }

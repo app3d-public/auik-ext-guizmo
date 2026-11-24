@@ -54,13 +54,21 @@ namespace auik::guizmo
             bool operator==(const Palette &) const = default;
         };
 
+        struct PlaneAppearance
+        {
+            f32 size = 0.f, rounding = 0.f, border_width = 0.f;
+            Palette fill{}, border{};
+            bool operator==(const PlaneAppearance &) const = default;
+        };
+
         struct Appearance
         {
             f32 reach = 0.f, shaft_width = 0.f;
             amal::vec2 arrow_size{};
             f32 center_radius = 0.f, center_width = 0.f;
             u32 center_color = 0u;
-            f32 plane_size = 0.f, plane_rounding = 0.f;
+            std::array<PlaneAppearance, 3> planes{};
+            PlaneAppearance locked_plane{};
             std::array<Palette, 3> axes{};
             Palette locked{};
             f32 guide_width = 0.f;

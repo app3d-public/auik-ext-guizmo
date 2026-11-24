@@ -71,6 +71,32 @@ guizmo-manipulator-center:
 guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)
+    border-thickness: @(1px * @dpi)
+
+guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
+    bg-color: (65, 130, 230, 0.25)
+    border-color: (65, 130, 230, 0.85)
+    @hover:
+        bg-color: (71, 143, 253, 0.42)
+        border-color: (71, 143, 253)
+
+guizmo-manipulator-plane-xz extends @guizmo-manipulator-plane:
+    bg-color: (130, 205, 35, 0.25)
+    border-color: (130, 205, 35, 0.85)
+    @hover:
+        bg-color: (143, 225, 39, 0.42)
+        border-color: (143, 225, 39)
+
+guizmo-manipulator-plane-yz extends @guizmo-manipulator-plane:
+    bg-color: (220, 67, 60, 0.25)
+    border-color: (220, 67, 60, 0.85)
+    @hover:
+        bg-color: (242, 73, 66, 0.42)
+        border-color: (242, 73, 66)
+
+guizmo-manipulator-plane-locked extends @guizmo-manipulator-plane:
+    bg-color: (133, 133, 133, 0.18)
+    border-color: (133, 133, 133, 0.58)
 
 guizmo-manipulator-x:
     bg-color: (220, 67, 60)
@@ -78,7 +104,7 @@ guizmo-manipulator-x:
         bg-color: (242, 73, 66)
 
 guizmo-manipulator-y:
-    bg-color: (113, 192, 61)
+    bg-color: (130, 205, 35)
     @hover:
         bg-color: (124, 211, 67)
 
