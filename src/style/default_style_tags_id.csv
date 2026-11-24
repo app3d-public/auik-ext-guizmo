@@ -10,6 +10,7 @@ guizmo-grid-label,0x3E569417
 guizmo-grid-label-background,0xA979551B
 guizmo-grid-line,0x4105D27C
 guizmo-manipulator-arrow,0x82EF2BE7
+guizmo-manipulator-dimmed,0x9DACA964
 guizmo-manipulator-edge,0xC64700F9
 guizmo-manipulator-guide,0xA129CF73
 guizmo-manipulator-guide-x,0x74F06780

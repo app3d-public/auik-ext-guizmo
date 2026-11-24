@@ -68,6 +68,7 @@ namespace auik::guizmo
                                      style(axis_tags[axis], StyleState::active).background_color()};
         const auto locked = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_LOCKED).background_color();
         appearance.locked = {locked, locked, locked};
+        appearance.dimmed_alpha = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_DIMMED).background_color() >> 24u;
         appearance.guide_width = guide.height();
         appearance.guide_colors = {style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_X).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Y).background_color(),
@@ -503,12 +504,18 @@ namespace auik::guizmo
             u32 plane_axis_hover_color = 0u;
             if (std::popcount(_hover) == 2 && (_hover & _frame.enabled) != 0u)
                 plane_axis_hover_color = _frame.appearance.planes[std::countr_zero(7u ^ _hover)].axis_hover_color;
-            const auto tint = [this, plane_axis_hover_color](Palette color, u32 handle) {
-                const u32 active_handle = _dragging ? _drag_handle : _hover;
-                const u32 mask = _dragging ? _drag_mask : (_hover & (_frame.enabled | edge_handle));
+            const u32 active_handle = _dragging ? _drag_handle : _hover;
+            const u32 mask = _dragging ? _drag_mask : (_hover & (_frame.enabled | edge_handle));
+            const bool dim_peers = (mask & 7u) != 0u && mask != 7u;
+            const auto tint = [&](Palette color, u32 handle) {
                 const bool axis_selected = std::has_single_bit(handle) && (mask & handle) != 0u;
-                if (!axis_selected && (!handle || handle != active_handle || (handle & mask) == 0u))
-                    return color.normal;
+                const bool handle_selected = handle != 0u && handle == active_handle && (handle & mask) != 0u;
+                if (!axis_selected && !handle_selected)
+                {
+                    if (!dim_peers || (handle & _frame.enabled) == 0u) return color.normal;
+                    const u32 alpha = ((color.normal >> 24u) * _frame.appearance.dimmed_alpha + 127u) / 255u;
+                    return (color.normal & 0x00ffffffu) | (alpha << 24u);
+                }
                 if (_dragging) return color.active;
                 if (axis_selected && plane_axis_hover_color) return plane_axis_hover_color;
                 return color.hover;
@@ -518,13 +525,11 @@ namespace auik::guizmo
                 if (!s.handle) append_segment(_vertices, _indices, s.a, s.b, s.width, depth, s.color.normal, clip_id());
             for (const auto &face : geometry.faces)
             {
+                const auto color = tint(face.color, face.handle);
                 for (auto p : {face.a, face.b, face.c})
                 {
                     _indices.push_back(static_cast<u32>(_vertices.size()));
-                    _vertices.push_back({.position = p,
-                                         .z_order = depth,
-                                         .color = tint(face.color, face.handle),
-                                         .clip_id = clip_id()});
+                    _vertices.push_back({.position = p, .z_order = depth, .color = color, .clip_id = clip_id()});
                 }
             }
             for (const auto &s : geometry.segments)
