@@ -58,16 +58,23 @@ guizmo-control-curve-handle:
 guizmo-manipulator-shaft:
     width: @(132px * @dpi)
     height: @(2.5px * @dpi)
+    @hover:
+        height: @(3.5px * @dpi)
 
 guizmo-manipulator-arrow:
     width: @(10px * @dpi)
     height: @(15px * @dpi)
+    @hover:
+        width: @(12px * @dpi)
+        height: @(17px * @dpi)
 
 guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)
     color: (255, 180, 0)
     border-thickness: @(1px * @dpi)
+    @hover:
+        width: @(20px * @dpi)
 
 guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
     bg-color: (65, 130, 230, 0.25)
@@ -138,9 +145,13 @@ guizmo-manipulator-guide-z extends @guizmo-manipulator-guide:
 
 guizmo-manipulator-rotation:
     height: @(2.4px * @dpi)
+    @hover:
+        height: @(3.6px * @dpi)
 
 guizmo-manipulator-scale:
     width: @(8px * @dpi)
+    @hover:
+        width: @(10px * @dpi)
 
 guizmo-manipulator-edge:
     size: (@(14px * @dpi), @(13px * @dpi))

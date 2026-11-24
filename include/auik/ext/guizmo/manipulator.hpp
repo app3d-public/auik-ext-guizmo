@@ -54,9 +54,15 @@ namespace auik::guizmo
             bool operator==(const Palette &) const = default;
         };
 
+        struct PlaneSize
+        {
+            f32 width = 0.f, rounding = 0.f, border_width = 0.f;
+            bool operator==(const PlaneSize &) const = default;
+        };
+
         struct PlaneAppearance
         {
-            f32 size = 0.f, rounding = 0.f, border_width = 0.f;
+            PlaneSize size{}, hover_size{};
             Palette fill{}, border{};
             u32 axis_hover_color = 0u;
             bool operator==(const PlaneAppearance &) const = default;
@@ -64,15 +70,17 @@ namespace auik::guizmo
 
         struct Appearance
         {
-            f32 reach = 0.f, shaft_width = 0.f;
-            amal::vec2 arrow_size{};
+            f32 reach = 0.f, hover_reach = 0.f;
+            f32 shaft_width = 0.f, hover_shaft_width = 0.f;
+            amal::vec2 arrow_size{}, hover_arrow_size{};
             std::array<PlaneAppearance, 3> planes{};
             PlaneAppearance locked_plane{};
             std::array<Palette, 3> axes{};
             Palette locked{};
             f32 guide_width = 0.f;
             std::array<u32, 3> guide_colors{};
-            f32 rotation_width = 0.f, scale_size = 0.f;
+            f32 rotation_width = 0.f, hover_rotation_width = 0.f;
+            f32 scale_size = 0.f, hover_scale_size = 0.f;
             amal::vec2 edge_size{};
             f32 edge_padding = 0.f, edge_width = 0.f;
             Palette edge{};
@@ -123,8 +131,12 @@ namespace auik::guizmo
         u32 _drag_mask = 0, _drag_handle = 0, _hover = 0;
         bool _dragging = false;
         void place(const amal::vec2 &pivot, const Frame &frame);
-        acul::vector<Segment> _segments;
-        acul::vector<Triangle> _faces;
+        struct Geometry
+        {
+            acul::vector<Segment> segments;
+            acul::vector<Triangle> faces;
+        };
+        Geometry _hit_geometry, _hover_geometry;
         u32 hit_handle(const amal::vec2 &screen) const;
         acul::vector<VertexStreamVertex> _vertices;
         acul::vector<VertexStreamIndex> _indices;
@@ -132,6 +144,6 @@ namespace auik::guizmo
         f32 _depth = -1;
         u32 _clip = ~0u;
         bool _dirty = true;
-        void build_segments();
+        void build_geometry(Geometry &geometry, u32 hover = 0u) const;
     };
 } // namespace auik::guizmo

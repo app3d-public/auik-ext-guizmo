@@ -29,18 +29,22 @@ namespace auik::guizmo
         };
         const auto &shaft = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SHAFT);
         const auto &arrow = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ARROW);
+        const auto &shaft_hover = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SHAFT, StyleState::hover);
+        const auto &arrow_hover = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ARROW, StyleState::hover);
         const auto &guide = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE);
         const auto &edge = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE);
         appearance.reach = shaft.width();
+        appearance.hover_reach = shaft_hover.width();
         appearance.shaft_width = shaft.height();
+        appearance.hover_shaft_width = shaft_hover.height();
         appearance.arrow_size = {arrow.width(), arrow.height()};
+        appearance.hover_arrow_size = {arrow_hover.width(), arrow_hover.height()};
         auto plane_style = [&](u32 tag) -> PlaneAppearance {
             const auto &base = style(tag);
             const auto &hover = style(tag, StyleState::hover);
             const auto &active = style(tag, StyleState::active);
-            return {base.width(),
-                    base.border_radius(),
-                    base.border_thickness(),
+            return {{base.width(), base.border_radius(), base.border_thickness()},
+                    {hover.width(), hover.border_radius(), hover.border_thickness()},
                     {base.background_color(), hover.background_color(), active.background_color()},
                     {base.border_color(), hover.border_color(), active.border_color()},
                     hover.text_color()};
@@ -63,7 +67,9 @@ namespace auik::guizmo
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Y).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Z).background_color()};
         appearance.rotation_width = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION).height();
+        appearance.hover_rotation_width = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION, StyleState::hover).height();
         appearance.scale_size = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE).width();
+        appearance.hover_scale_size = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE, StyleState::hover).width();
         appearance.edge_size = {edge.width(), edge.height()};
         appearance.edge_padding = edge.padding().x;
         appearance.edge_width = edge.border_thickness();
@@ -264,7 +270,7 @@ namespace auik::guizmo
         {
             _frame.guides = 0;
             _frame.guide_length = 0.f;
-            build_segments();
+            build_geometry(_hit_geometry);
         }
         if (std::exchange(_hover, 0u) || was_dragging)
         {
@@ -277,11 +283,11 @@ namespace auik::guizmo
 
     void Manipulator::place(const amal::vec2 &pivot, const Frame &frame)
     {
-        const bool changed = _segments.empty() || !(_frame == frame);
+        const bool changed = _hit_geometry.segments.empty() || !(_frame == frame);
         if (changed)
         {
             _frame = frame;
-            build_segments();
+            build_geometry(_hit_geometry);
             _dirty = true;
         }
         if (!changed && !_dirty && position() == pivot) return;
@@ -289,12 +295,12 @@ namespace auik::guizmo
         if (is_attached()) redraw_external(_record.render_id != AUIK_INVALID_DRAW_DATA_ID);
     }
 
-    void Manipulator::build_segments()
+    void Manipulator::build_geometry(Geometry &geometry, u32 hover) const
     {
-        _segments.clear();
-        _faces.clear();
+        geometry.segments.clear();
+        geometry.faces.clear();
         auto line = [&](amal::vec2 a, amal::vec2 b, f32 width, Palette color, u32 mask) {
-            if (width > 0.f && amal::length(b - a) > 0.001f) _segments.push_back({a, b, width, color, mask});
+            if (width > 0.f && amal::length(b - a) > 0.001f) geometry.segments.push_back({a, b, width, color, mask});
         };
         const auto &appearance = _frame.appearance;
         if (_frame.edge_direction != amal::vec2{})
@@ -314,6 +320,8 @@ namespace auik::guizmo
                 return (_frame.reversed_handles & (1u << index)) ? -_frame.axes[index] : _frame.axes[index];
             };
             auto axis = oriented(i);
+            const bool axis_hovered = (hover & _frame.enabled & bit) != 0u;
+            const f32 shaft_width = axis_hovered ? appearance.hover_shaft_width : appearance.shaft_width;
             auto u = _frame.axes[j_axis], v = _frame.axes[k_axis];
             auto color = (_frame.enabled & bit) ? appearance.axes[i] : appearance.locked;
             if ((_frame.guides & bit) && amal::length(axis) > 1.f)
@@ -334,31 +342,35 @@ namespace auik::guizmo
                 {
                     f32 angle = start + j * (sweep / 72.f);
                     auto next = u * std::cos(angle) + v * std::sin(angle);
-                    line(last, next, appearance.rotation_width, color, bit);
+                    line(last, next, axis_hovered ? appearance.hover_rotation_width : appearance.rotation_width, color,
+                         bit);
                     last = next;
                 }
                 continue;
             }
+            if (axis_hovered) axis *= appearance.hover_reach / appearance.reach;
             const f32 axis_length = amal::length(axis);
             if (axis_length > 4.f)
             {
                 auto dir = amal::normalize(axis), n = normal(dir);
                 if (_frame.operation == Operation::move)
                 {
-                    const auto base = axis - dir * std::min(appearance.arrow_size.y, axis_length);
-                    const auto shoulder = n * (appearance.arrow_size.x * 0.5f);
+                    const auto size = axis_hovered ? appearance.hover_arrow_size : appearance.arrow_size;
+                    const auto base = axis - dir * std::min(size.y, axis_length);
+                    const auto shoulder = n * (size.x * 0.5f);
                     const auto left = base + shoulder, right = base - shoulder;
-                    line({}, base, appearance.shaft_width, color, bit);
-                    _faces.push_back({axis, left, right, color, bit});
+                    line({}, base, shaft_width, color, bit);
+                    geometry.faces.push_back({axis, left, right, color, bit});
                     line(axis, left, 0.5f, color, bit);
                     line(axis, right, 0.5f, color, bit);
                     line(left, right, 0.5f, color, bit);
                 }
                 else
                 {
-                    line({}, axis, appearance.shaft_width, color, bit);
-                    const f32 half = appearance.scale_size * 0.5f;
-                    line(axis - dir * half, axis + dir * half, appearance.scale_size, color, bit);
+                    line({}, axis, shaft_width, color, bit);
+                    const auto size = axis_hovered ? appearance.hover_scale_size : appearance.scale_size;
+                    const f32 half = size * 0.5f;
+                    line(axis - dir * half, axis + dir * half, size, color, bit);
                     for (auto end : {axis - dir * half, axis + dir * half})
                         line(end - n * half, end + n * half, 0.5f, color, bit);
                 }
@@ -369,11 +381,12 @@ namespace auik::guizmo
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
             const auto &plane_style = (_frame.enabled & plane) ? appearance.planes[i] : appearance.locked_plane;
-            const f32 half_size = plane_style.size * 0.5f;
+            const auto &size = hover == plane && (_frame.enabled & plane) ? plane_style.hover_size : plane_style.size;
+            const f32 half_size = size.width * 0.5f;
             if (half_size <= 0.f) continue;
             const f32 low = 0.46f - half_size / appearance.reach;
             const f32 high = 0.46f + half_size / appearance.reach;
-            const f32 corner_radius = std::clamp(plane_style.rounding, 0.f, half_size) / appearance.reach;
+            const f32 corner_radius = std::clamp(size.rounding, 0.f, half_size) / appearance.reach;
             constexpr int arc_steps = 5;
             const amal::vec2 corners[] = {{high - corner_radius, high - corner_radius},
                                           {low + corner_radius, high - corner_radius},
@@ -388,8 +401,8 @@ namespace auik::guizmo
                     const f32 angle = (corner + f32(step) / arc_steps) * 1.570796327f;
                     const auto uv = corners[corner] + amal::vec2{std::cos(angle), std::sin(angle)} * corner_radius;
                     const auto point = u * uv.x + v * uv.y;
-                    _faces.push_back({center, previous, point, plane_style.fill, plane});
-                    line(previous, point, plane_style.border_width, plane_style.border, plane);
+                    geometry.faces.push_back({center, previous, point, plane_style.fill, plane});
+                    line(previous, point, size.border_width, plane_style.border, plane);
                     previous = point;
                 }
         }
@@ -405,7 +418,7 @@ namespace auik::guizmo
     {
         auto p = screen - position();
         auto side = [](amal::vec2 a, amal::vec2 b) { return a.x * b.y - a.y * b.x; };
-        for (const auto &face : _faces)
+        for (const auto &face : _hit_geometry.faces)
         {
             if (std::abs(side(face.b - face.a, face.c - face.a)) < 1e-5f) continue;
             auto a = side(face.b - face.a, p - face.a);
@@ -417,7 +430,7 @@ namespace auik::guizmo
         }
         f32 best = 7.f;
         u32 hit = 0;
-        for (auto &s : _segments)
+        for (auto &s : _hit_geometry.segments)
         {
             if (!s.handle) continue;
             auto ab = s.b - s.a;
@@ -444,8 +457,12 @@ namespace auik::guizmo
         bool rebuild = _dirty || _depth != depth || _clip != clip_id();
         if (rebuild)
         {
-            const size_t vertex_count = 3 * _faces.size() + 8 * _segments.size();
-            const size_t index_count = 3 * _faces.size() + 18 * _segments.size();
+            // Keep picking on the normal geometry so changing size cannot toggle hover.
+            const bool resize_handles = _hover && !_dragging;
+            if (resize_handles) build_geometry(_hover_geometry, _hover);
+            const auto &geometry = resize_handles ? _hover_geometry : _hit_geometry;
+            const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size();
+            const size_t index_count = 3 * geometry.faces.size() + 18 * geometry.segments.size();
             if ((_vertices.size() != vertex_count || _indices.size() != index_count) &&
                 _record.render_id != AUIK_INVALID_DRAW_DATA_ID)
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
@@ -465,9 +482,9 @@ namespace auik::guizmo
                 return color.hover;
             };
             // Emit guides first so the solid handles cover them at the same widget depth.
-            for (const auto &s : _segments)
+            for (const auto &s : geometry.segments)
                 if (!s.handle) append_segment(_vertices, _indices, s.a, s.b, s.width, depth, s.color.normal, clip_id());
-            for (const auto &face : _faces)
+            for (const auto &face : geometry.faces)
             {
                 for (auto p : {face.a, face.b, face.c})
                 {
@@ -478,7 +495,7 @@ namespace auik::guizmo
                                          .clip_id = clip_id()});
                 }
             }
-            for (const auto &s : _segments)
+            for (const auto &s : geometry.segments)
                 if (s.handle)
                     append_segment(_vertices, _indices, s.a, s.b, s.width, depth, tint(s.color, s.handle), clip_id());
             _depth = depth;
