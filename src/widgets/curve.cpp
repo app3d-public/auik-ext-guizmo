@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <auik/auik.hpp>
-#include <auik/ext/plot/curve.hpp>
+#include <auik/ext/guizmo/curve.hpp>
 #include <limits>
 #include "amal/bezier.hpp"
 
-namespace auik::plot
+namespace auik::guizmo
 {
     namespace
     {
@@ -487,7 +487,7 @@ namespace auik::plot
           _point_style{Theme::STYLE_ID_INVALID, point_style_tag},
           _handle_style{Theme::STYLE_ID_INVALID, handle_style_tag}
     {
-        set_rect_tag_id(AUIK_TAG_PLOT_CONTROL_CURVE);
+        set_rect_tag_id(AUIK_TAG_GUIZMO_CONTROL_CURVE);
         set_event_flags(EventFlagBits::click | EventFlagBits::drag | EventFlagBits::hover);
     }
 
@@ -592,7 +592,7 @@ namespace auik::plot
         {
             const auto &point = _curve.points[point_index];
             const amal::vec2 knot = curve_to_screen(point.position);
-            add_control_visual(knot, knot, point_index, ControlKind::point, AUIK_TAG_PLOT_CURVE_POINT, _point_style,
+            add_control_visual(knot, knot, point_index, ControlKind::point, AUIK_TAG_GUIZMO_CURVE_POINT, _point_style,
                                _point_hover_style, _point_active_style, display_knots[point_index]);
         }
 
@@ -605,7 +605,7 @@ namespace auik::plot
             if (amal::distance(point.position, point.handle_in) > 1e-5f)
             {
                 amal::vec2 display_handle{};
-                if (add_control_visual(handle_in, knot, point_index, ControlKind::handle_in, AUIK_TAG_PLOT_HANDLE_IN,
+                if (add_control_visual(handle_in, knot, point_index, ControlKind::handle_in, AUIK_TAG_GUIZMO_HANDLE_IN,
                                        _handle_style, _handle_hover_style, _handle_active_style, display_handle))
                     append_segment(_curve_vertices, _curve_indices, display_knots[point_index], display_handle,
                                    line_style.height(), line_z, line_style.background_color(), clip_id());
@@ -613,7 +613,7 @@ namespace auik::plot
             if (amal::distance(point.position, point.handle_out) > 1e-5f)
             {
                 amal::vec2 display_handle{};
-                if (add_control_visual(handle_out, knot, point_index, ControlKind::handle_out, AUIK_TAG_PLOT_HANDLE_OUT,
+                if (add_control_visual(handle_out, knot, point_index, ControlKind::handle_out, AUIK_TAG_GUIZMO_HANDLE_OUT,
                                        _handle_style, _handle_hover_style, _handle_active_style, display_handle))
                     append_segment(_curve_vertices, _curve_indices, display_knots[point_index], display_handle,
                                    line_style.height(), line_z, line_style.background_color(), clip_id());
@@ -801,7 +801,7 @@ namespace auik::plot
         const KeyMode mods = active_key_mods();
         if (target.widget_id != id()) return;
 
-        if (target.tag_id == AUIK_TAG_PLOT_CURVE_POINT && target.element_id < _curve.points.size())
+        if (target.tag_id == AUIK_TAG_GUIZMO_CURVE_POINT && target.element_id < _curve.points.size())
         {
             const size_t point_index = target.element_id;
             if (mods & KeyModeBits::control)
@@ -812,7 +812,7 @@ namespace auik::plot
             else select_point(point_index);
             return;
         }
-        if ((target.tag_id == AUIK_TAG_PLOT_HANDLE_IN || target.tag_id == AUIK_TAG_PLOT_HANDLE_OUT) &&
+        if ((target.tag_id == AUIK_TAG_GUIZMO_HANDLE_IN || target.tag_id == AUIK_TAG_GUIZMO_HANDLE_OUT) &&
             target.element_id < _curve.points.size())
         {
             select_point(target.element_id);
@@ -849,7 +849,7 @@ namespace auik::plot
         if (target.widget_id != id() || target.element_id >= _curve.points.size()) return;
         amal::vec2 logical_delta{delta.x * _view.size.x / amal::max(bounds().size.x, 1e-5f),
                                  -delta.y * _view.size.y / amal::max(bounds().size.y, 1e-5f)};
-        if (target.tag_id == AUIK_TAG_PLOT_CURVE_POINT)
+        if (target.tag_id == AUIK_TAG_GUIZMO_CURVE_POINT)
         {
             if (!is_point_selected(target.element_id)) select_point(target.element_id);
             if (_clamp_enabled && !_selected_points.empty())
@@ -881,11 +881,11 @@ namespace auik::plot
                 amal::bezier_point_set_position(point, position);
             }
         }
-        else if (target.tag_id == AUIK_TAG_PLOT_HANDLE_IN || target.tag_id == AUIK_TAG_PLOT_HANDLE_OUT)
+        else if (target.tag_id == AUIK_TAG_GUIZMO_HANDLE_IN || target.tag_id == AUIK_TAG_GUIZMO_HANDLE_OUT)
         {
             auto &point = _curve.points[target.element_id];
             const auto handle =
-                target.tag_id == AUIK_TAG_PLOT_HANDLE_IN ? amal::bezier_handle::in : amal::bezier_handle::out;
+                target.tag_id == AUIK_TAG_GUIZMO_HANDLE_IN ? amal::bezier_handle::in : amal::bezier_handle::out;
             const amal::vec2 current = handle == amal::bezier_handle::in ? point.handle_in : point.handle_out;
             const KeyMode mods = active_key_mods();
             amal::vec2 next = current + logical_delta;
@@ -925,4 +925,4 @@ namespace auik::plot
         _drag_changed = true;
         invalidate_controls();
     }
-} // namespace auik::plot
+} // namespace auik::guizmo

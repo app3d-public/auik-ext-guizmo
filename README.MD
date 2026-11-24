@@ -1,7 +1,9 @@
-# Auik Plot Extension
+# Auik Guizmo Extension
 
-`auik-ext-plot` is an extension for the [Auik](https://repos.wusikijeronii.me/app3d/auik) library that provides widgets for displaying and editing 2D curves.  
-It provides an interactive curve editor with canvas navigation, curve and control point editing, selection, and customizable grid visualization.
+`auik-ext-guizmo` is an extension for the [Auik](https://repos.wusikijeronii.me/app3d/auik) library for viewport transform handles and curve editing.
+The move, rotate and scale handles follow [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) interaction conventions. Pass the camera matrix, pivot and viewport to `Manipulator::project`. Forward pointer input to `begin_drag`, `drag_delta` and `end_drag`. The host supplies the enabled-axis mask and can enable full-axis guides or the offscreen indicator.
+
+The extension also provides an interactive curve editor with canvas navigation, curve and control point editing, selection, and customizable grid visualization.
 
 [<img src="./screenshots/curve_canvas.png" alt="screenshot" width="350"/>](./screenshots/curve_canvas.png)
 
@@ -13,12 +15,12 @@ curve.points.push_back({{-1.0f, -0.5f}, {-1.0f, -0.5f}, {-0.7f, -0.5f}});
 curve.points.push_back({{ 0.0f,  0.5f}, {-0.3f,  0.2f}, { 0.3f,  0.8f}});
 curve.points.push_back({{ 1.0f, -0.5f}, { 0.7f, -0.5f}, { 1.0f, -0.5f}});
 
-auto* curve_widget = auik::plot::make_control_curve(curve_id, std::move(curve));
+auto* curve_widget = auik::guizmo::make_control_curve(curve_id, std::move(curve));
 curve_widget->set_view({{-1.0f, -1.0f}, {2.0f, 2.0f}});
 
-auto* grid = auik::plot::make_grid(grid_id, AUIK_SIZE_FILL, 10u, amal::axis::x);
-auto *canvas = auik::plot::make_curve_canvas(canvas_id, grid, curve_widget,
-                                              auik::plot::CurveCanvasFlagBits::rubber_band,
+auto* grid = auik::guizmo::make_grid(grid_id, AUIK_SIZE_FILL, 10u, amal::axis::x);
+auto *canvas = auik::guizmo::make_curve_canvas(canvas_id, grid, curve_widget,
+                                              auik::guizmo::CurveCanvasFlagBits::rubber_band,
                                               AUIK_SIZE_FILL
                                               );
 window->add_child(canvas);

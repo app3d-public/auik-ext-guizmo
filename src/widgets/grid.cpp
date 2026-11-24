@@ -1,11 +1,11 @@
 #include <acul/string/utils.hpp>
 #include <auik/auik.hpp>
-#include <auik/ext/plot/grid.hpp>
+#include <auik/ext/guizmo/grid.hpp>
 #include <auik/widgets/text.hpp>
 
 #define MAX_GRID_LINES_PER_AXIS 16384u
 
-namespace auik::plot
+namespace auik::guizmo
 {
     struct Grid::Hints
     {
@@ -14,7 +14,7 @@ namespace auik::plot
             acul::vector<f32> values;
             acul::vector<Text *> widgets;
             u32 precision = 1u;
-            u32 style_tag = AUIK_STYLE_TAG_PLOT_GRID_LABEL;
+            u32 style_tag = AUIK_STYLE_TAG_GUIZMO_GRID_LABEL;
         };
 
         Labels x_labels;
@@ -23,7 +23,7 @@ namespace auik::plot
         acul::vector<StyleSelector> baseline_styles;
         acul::vector<QuadsInstanceData> baseline_lines;
         acul::vector<DrawDataID> baseline_draws;
-        StyleSelector label_background_style{Theme::STYLE_ID_INVALID, AUIK_STYLE_TAG_PLOT_GRID_LABEL_BACKGROUND};
+        StyleSelector label_background_style{Theme::STYLE_ID_INVALID, AUIK_STYLE_TAG_GUIZMO_GRID_LABEL_BACKGROUND};
         acul::vector<QuadsInstanceData> label_backgrounds;
         acul::vector<DrawDataID> label_background_draws;
         amal::vec2 unit_size{1.0f, 1.0f};
@@ -683,4 +683,4 @@ namespace auik::plot
         layout_labels(_hints->x_labels, amal::axis::x);
         layout_labels(_hints->y_labels, amal::axis::y);
     }
-} // namespace auik::plot
+} // namespace auik::guizmo

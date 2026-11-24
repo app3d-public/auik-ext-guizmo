@@ -1,11 +1,11 @@
 #include <auik/auik.hpp>
-#include <auik/ext/plot/curve_canvas.hpp>
+#include <auik/ext/guizmo/curve_canvas.hpp>
 
-namespace auik::plot
+namespace auik::guizmo
 {
     CurveCanvas::CurveCanvas(u32 id, Grid *grid, Curve *curve, CurveCanvasFlags canvas_flags,
                              const amal::vec2 &inline_size, WidgetFlags widget_flags)
-        : Block(id, widget_flags, AUIK_TAG_PLOT_CURVE_CANVAS),
+        : Block(id, widget_flags, AUIK_TAG_GUIZMO_CURVE_CANVAS),
           _grid(grid),
           _curve(curve),
           _rubber_band(acul::alloc<RubberBand>(id, WidgetFlagBits::visible)),
@@ -26,7 +26,7 @@ namespace auik::plot
 
     ControlCurve *CurveCanvas::control_curve() const
     {
-        return _curve && _curve->signature() == AUIK_TAG_PLOT_CONTROL_CURVE ? static_cast<ControlCurve *>(_curve)
+        return _curve && _curve->signature() == AUIK_TAG_GUIZMO_CONTROL_CURVE ? static_cast<ControlCurve *>(_curve)
                                                                             : nullptr;
     }
 
@@ -83,7 +83,7 @@ namespace auik::plot
         (void)click_count;
         if (key != MouseKey::left || state != KeyPressState::press) return;
         const ElementID target = detail::get_context().hover_id;
-        if (target.widget_id != id() || target.tag_id != AUIK_TAG_PLOT_CURVE_CANVAS) return;
+        if (target.widget_id != id() || target.tag_id != AUIK_TAG_GUIZMO_CURVE_CANVAS) return;
         _selection_mods = active_key_mods();
         if ((_selection_mods & KeyModeBits::shift) && control_curve() &&
             control_curve()->insert_point_at(get_mouse_pos(), true))
@@ -96,7 +96,7 @@ namespace auik::plot
     void CurveCanvas::on_drag(const amal::vec2 &delta, KeyPressState state)
     {
         const ElementID drag_id = detail::get_context().io.drag_id;
-        if (!rubber_band_enabled() || drag_id.widget_id != id() || drag_id.tag_id != AUIK_TAG_PLOT_CURVE_CANVAS) return;
+        if (!rubber_band_enabled() || drag_id.widget_id != id() || drag_id.tag_id != AUIK_TAG_GUIZMO_CURVE_CANVAS) return;
         _rubber_band->dispatch_drag(delta, state);
         if (state == KeyPressState::release)
         {
@@ -135,4 +135,4 @@ namespace auik::plot
         else controls->set_selected_points(matches);
         _rubber_band->clear_commit();
     }
-} // namespace auik::plot
+} // namespace auik::guizmo
