@@ -4,6 +4,7 @@
 #include <auik/ext/guizmo/widget_tags.hpp>
 #include <bit>
 #include <cmath>
+#include <numbers>
 #include <utility>
 #include "line_geometry.hpp"
 
@@ -67,6 +68,7 @@ namespace auik::guizmo
         appearance.hover_dimmed_alpha =
             style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_DIMMED, StyleState::hover).background_color() >> 24u;
         appearance.guide_width = guide.height();
+        appearance.drag_pivot_diameter = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_DRAG_PIVOT).width();
         appearance.guide_colors = {style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_X).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Y).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Z).background_color()};
@@ -535,8 +537,13 @@ namespace auik::guizmo
                 _hover_geometry_mask = _hover;
             }
             const auto &geometry = resize_handles ? _hover_geometry : _hit_geometry;
-            const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size();
-            const size_t index_count = 3 * geometry.faces.size() + 18 * geometry.segments.size();
+            constexpr u32 pivot_segments = 20u;
+            const bool show_drag_pivot = _dragging && _drag_handle && _frame.operation == Operation::move &&
+                                         _frame.edge_direction == amal::vec2{} && appearance.drag_pivot_diameter > 0.f;
+            const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size() +
+                                        (show_drag_pivot ? 1u + 2u * pivot_segments : 0u);
+            const size_t index_count = 3 * geometry.faces.size() + 18 * geometry.segments.size() +
+                                       (show_drag_pivot ? 9u * pivot_segments : 0u);
             if ((_vertices.size() != vertex_count || _indices.size() != index_count) &&
                 _record.render_id != AUIK_INVALID_DRAW_DATA_ID)
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
@@ -575,6 +582,26 @@ namespace auik::guizmo
             for (const auto &s : geometry.segments)
                 if (s.handle)
                     append_segment(_vertices, _indices, s.a, s.b, s.width, depth, tint(s.color, s.handle), clip_id());
+            if (show_drag_pivot)
+            {
+                const u32 color = std::has_single_bit(_drag_handle)
+                                      ? appearance.axes[std::countr_zero(_drag_handle)].active
+                                      : appearance.planes[std::countr_zero(7u ^ _drag_handle)].fill.active;
+                const f32 radius = appearance.drag_pivot_diameter * 0.5f;
+                const u32 center = static_cast<u32>(_vertices.size());
+                append_vertex(_vertices, {}, depth, color, clip_id());
+                for (u32 i = 0; i < pivot_segments; ++i)
+                {
+                    const f32 angle = 2.f * std::numbers::pi_v<f32> * i / pivot_segments;
+                    const amal::vec2 dir{std::cos(angle), std::sin(angle)};
+                    append_vertex(_vertices, dir * radius, depth, color, clip_id());
+                    append_vertex(_vertices, dir * (radius + 1.f), depth, color & 0x00ffffffu, clip_id());
+                    const u32 inner = center + 1u + 2u * i;
+                    const u32 next = center + 1u + 2u * ((i + 1u) % pivot_segments);
+                    for (u32 index : {center, inner, next, inner, inner + 1u, next, next, inner + 1u, next + 1u})
+                        _indices.push_back(index);
+                }
+            }
             _depth = depth;
             _clip = clip_id();
             _dirty = false;

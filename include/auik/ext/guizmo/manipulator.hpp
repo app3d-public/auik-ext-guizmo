@@ -77,7 +77,7 @@ namespace auik::guizmo
             std::array<Palette, 3> axes{};
             u32 locked_alpha = 0xff000000u;
             u32 dimmed_alpha = 255u, hover_dimmed_alpha = 255u;
-            f32 guide_width = 0.f;
+            f32 guide_width = 0.f, drag_pivot_diameter = 0.f;
             std::array<u32, 3> guide_colors{};
             f32 rotation_width = 0.f, hover_rotation_width = 0.f;
             f32 scale_size = 0.f, hover_scale_size = 0.f;

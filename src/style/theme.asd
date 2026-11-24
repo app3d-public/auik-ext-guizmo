@@ -137,6 +137,9 @@ guizmo-manipulator-dimmed:
 guizmo-manipulator-locked:
     bg-color: (255, 255, 255, 0.52)
 
+guizmo-manipulator-drag-pivot:
+    width: @(8px * @dpi)
+
 guizmo-manipulator-guide:
     height: @(1px * @dpi)
 
