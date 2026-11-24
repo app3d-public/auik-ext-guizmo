@@ -9,3 +9,15 @@ guizmo-grid-baseline,0xB957C7AD
 guizmo-grid-label,0x3E569417
 guizmo-grid-label-background,0xA979551B
 guizmo-grid-line,0x4105D27C
+guizmo-manipulator-arrow,0x82EF2BE7
+guizmo-manipulator-center,0xDB818DDD
+guizmo-manipulator-edge,0xC64700F9
+guizmo-manipulator-guide,0xA129CF73
+guizmo-manipulator-locked,0x7AB7E7B5
+guizmo-manipulator-plane,0xA27094D2
+guizmo-manipulator-rotation,0x7EE7C8E9
+guizmo-manipulator-scale,0x9D630F6D
+guizmo-manipulator-shaft,0x3F22B98B
+guizmo-manipulator-x,0x5C802E43
+guizmo-manipulator-y,0x1E82AA33
+guizmo-manipulator-z,0xD42ABE91

@@ -55,3 +55,55 @@ guizmo-control-curve-handle:
         bg-color: (255, 191, 66)
     @active:
         bg-color: (255, 191, 66)
+guizmo-manipulator-shaft:
+    width: @(108px * @dpi)
+    height: @(2.5px * @dpi)
+
+guizmo-manipulator-arrow:
+    width: @(10px * @dpi)
+    height: @(15px * @dpi)
+
+guizmo-manipulator-center:
+    width: @(20px * @dpi)
+    height: @(1.5px * @dpi)
+    bg-color: @color-accent
+
+guizmo-manipulator-plane:
+    width: @(16px * @dpi)
+    radius: @(4px * @dpi)
+
+guizmo-manipulator-x:
+    bg-color: (220, 67, 60)
+    @hover:
+        bg-color: (242, 73, 66)
+
+guizmo-manipulator-y:
+    bg-color: (113, 192, 61)
+    @hover:
+        bg-color: (124, 211, 67)
+
+guizmo-manipulator-z:
+    bg-color: (65, 130, 230)
+    @hover:
+        bg-color: (71, 143, 253)
+
+guizmo-manipulator-locked:
+    bg-color: (133, 133, 133, 0.745)
+
+guizmo-manipulator-guide:
+    height: @(1px * @dpi)
+    bg-color: (255, 255, 255, 0.565)
+
+guizmo-manipulator-rotation:
+    height: @(2.4px * @dpi)
+
+guizmo-manipulator-scale:
+    width: @(8px * @dpi)
+
+guizmo-manipulator-edge:
+    size: (@(14px * @dpi), @(13px * @dpi))
+    padding: @(12px * @dpi)
+    border-thickness: @(3px * @dpi)
+    border-color: (238, 238, 238)
+    @hover:
+        border-color: (255, 255, 255)

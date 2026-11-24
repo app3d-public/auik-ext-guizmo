@@ -1,6 +1,7 @@
 #include <amal/geometric.hpp>
 #include <auik/auik.hpp>
 #include <auik/ext/guizmo/manipulator.hpp>
+#include <auik/ext/guizmo/widget_tags.hpp>
 #include <bit>
 #include <cmath>
 #include "line_geometry.hpp"
@@ -9,9 +10,6 @@ namespace auik::guizmo
 {
     namespace
     {
-        constexpr u32 colors[] = {detail::pack_rgba8(220, 67, 60, 255), detail::pack_rgba8(113, 192, 61, 255),
-                                  detail::pack_rgba8(65, 130, 230, 255)};
-        constexpr u32 disabled = detail::pack_rgba8(133, 133, 133, 190);
         amal::vec2 normal(amal::vec2 p) { return {-p.y, p.x}; }
     } // namespace
 
@@ -20,9 +18,65 @@ namespace auik::guizmo
     {
     }
 
+    Manipulator::Appearance Manipulator::read_appearance() const
+    {
+        auto *theme = get_theme();
+        Appearance appearance;
+        if (!theme) return appearance;
+        auto style = [&](u32 tag, StyleState state = StyleState::normal) -> const Style & {
+            return theme->get_style(theme->get_resolved_style(tag, 0u, 0u, state));
+        };
+        const auto &shaft = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SHAFT);
+        const auto &arrow = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ARROW);
+        const auto &center = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_CENTER);
+        const auto &plane = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE);
+        const auto &guide = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE);
+        const auto &edge = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE);
+        appearance.reach = shaft.width();
+        appearance.shaft_width = shaft.height();
+        appearance.arrow_size = {arrow.width(), arrow.height()};
+        appearance.center_radius = center.width() * 0.5f;
+        appearance.center_width = center.height();
+        appearance.center_color = center.background_color();
+        appearance.plane_size = plane.width();
+        appearance.plane_rounding = plane.border_radius();
+
+        constexpr u32 axis_tags[] = {AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_X, AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_Y,
+                                     AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_Z};
+        for (u32 axis = 0; axis < 3; ++axis)
+            appearance.axes[axis] = {style(axis_tags[axis]).background_color(),
+                                     style(axis_tags[axis], StyleState::hover).background_color()};
+        const auto locked = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_LOCKED).background_color();
+        appearance.locked = {locked, locked};
+        appearance.guide_width = guide.height();
+        appearance.guide_alpha = guide.background_color() & 0xff000000u;
+        appearance.rotation_width = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION).height();
+        appearance.scale_size = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE).width();
+        appearance.edge_size = {edge.width(), edge.height()};
+        appearance.edge_padding = edge.padding().x;
+        appearance.edge_width = edge.border_thickness();
+        appearance.edge = {edge.border_color(),
+                           style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE, StyleState::hover).border_color()};
+        return appearance;
+    }
+
+    StyleUpdateFlags Manipulator::update_style()
+    {
+        _appearance = read_appearance();
+        if (_projection) project_frame(*_projection);
+        return {};
+    }
+
     bool Manipulator::project(const amal::mat4 &matrix, const amal::vec3 &pivot, const amal::rect &viewport,
                               const amal::rect &bounds, const Options &options)
     {
+        _projection = Projection{matrix, pivot, viewport, bounds, options};
+        return project_frame(*_projection);
+    }
+
+    bool Manipulator::project_frame(const Projection &projection)
+    {
+        const auto &[matrix, pivot, viewport, bounds, options] = projection;
         if (bounds.size.x <= 32.f || bounds.size.y <= 32.f) return false;
         auto clip = matrix * amal::vec4(pivot, 1.f);
         auto half = viewport.size * 0.5f;
@@ -42,9 +96,11 @@ namespace auik::guizmo
             for (u32 axis = 0; axis < 3; ++axis)
                 if (options.view_direction[axis] < 0.f) frame.reversed_handles ^= 1u << axis;
         }
-        frame.appearance = options.appearance;
-        frame.appearance.reach = std::max(frame.appearance.reach, 1.f);
-        auto inset = bounds.size * 0.5f - amal::vec2{12.f, 12.f};
+        if (!_appearance) _appearance = read_appearance();
+        frame.appearance = *_appearance;
+        if (frame.appearance.reach <= 0.f) return false;
+        auto inset = bounds.size * 0.5f - amal::vec2{frame.appearance.edge_padding};
+        if (inset.x <= 0.f || inset.y <= 0.f) return false;
         auto edge_center = bounds.offset + bounds.size * 0.5f;
         auto direction = point - edge_center;
         if (clip.w <= 0 || std::abs(direction.x) > inset.x || std::abs(direction.y) > inset.y)
@@ -202,17 +258,19 @@ namespace auik::guizmo
     {
         _segments.clear();
         _faces.clear();
-        auto line = [&](amal::vec2 a, amal::vec2 b, f32 width, u32 color, u32 mask) {
-            if (amal::length(b - a) > 0.001f) _segments.push_back({a, b, width, color, mask});
+        auto line = [&](amal::vec2 a, amal::vec2 b, f32 width, Palette color, u32 mask) {
+            if (width > 0.f && amal::length(b - a) > 0.001f) _segments.push_back({a, b, width, color, mask});
         };
+        const auto &appearance = _frame.appearance;
         if (_frame.edge_direction != amal::vec2{})
         {
             auto dir = _frame.edge_direction;
+            const auto half = appearance.edge_size * 0.5f;
             for (float side : {-1.f, 1.f})
-                line(-dir * 7.f + normal(dir) * (side * 7.f), dir * 6.f, 3.f, 0xffeeeeeeu, edge_handle);
+                line(-dir * half.y + normal(dir) * (side * half.x), dir * half.y, appearance.edge_width,
+                     appearance.edge, edge_handle);
             return;
         }
-        const auto &appearance = _frame.appearance;
         for (u32 i = 0; i < 3; ++i)
         {
             u32 bit = 1u << i;
@@ -222,11 +280,12 @@ namespace auik::guizmo
             };
             auto axis = oriented(i);
             auto u = _frame.axes[j_axis], v = _frame.axes[k_axis];
-            u32 color = (_frame.enabled & bit) ? colors[i] : disabled;
+            auto color = (_frame.enabled & bit) ? appearance.axes[i] : appearance.locked;
             if ((_frame.guides & bit) && amal::length(axis) > 1.f)
             {
                 auto end = amal::normalize(axis) * _frame.guide_length;
-                line(-end, end, 1.f, (color & 0xffffffu) | 0x90000000u, 0);
+                const u32 guide_color = (color.normal & 0xffffffu) | appearance.guide_alpha;
+                line(-end, end, appearance.guide_width, {guide_color, guide_color}, 0);
             }
             if (_frame.operation == Operation::rotate)
             {
@@ -240,7 +299,7 @@ namespace auik::guizmo
                 {
                     f32 angle = start + j * (sweep / 72.f);
                     auto next = u * std::cos(angle) + v * std::sin(angle);
-                    line(last, next, 2.4f, color, bit);
+                    line(last, next, appearance.rotation_width, color, bit);
                     last = next;
                 }
                 continue;
@@ -265,9 +324,10 @@ namespace auik::guizmo
                 else
                 {
                     line(start, axis, appearance.shaft_width, color, bit);
-                    line(axis - dir * 4.f, axis + dir * 4.f, 8.f, color, bit);
-                    for (auto end : {axis - dir * 4.f, axis + dir * 4.f})
-                        line(end - n * 4.f, end + n * 4.f, 0.5f, color, bit);
+                    const f32 half = appearance.scale_size * 0.5f;
+                    line(axis - dir * half, axis + dir * half, appearance.scale_size, color, bit);
+                    for (auto end : {axis - dir * half, axis + dir * half})
+                        line(end - n * half, end + n * half, 0.5f, color, bit);
                 }
             }
             // Offset plane handles leave the pivot and the axis tips accessible.
@@ -275,7 +335,7 @@ namespace auik::guizmo
             v = oriented(k_axis);
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
-            color = (_frame.enabled & plane) == plane ? colors[i] : disabled;
+            color = (_frame.enabled & plane) == plane ? appearance.axes[i] : appearance.locked;
             const f32 half_size = appearance.plane_size * 0.5f;
             const f32 low = 0.46f - half_size / appearance.reach;
             const f32 high = 0.46f + half_size / appearance.reach;
@@ -306,7 +366,8 @@ namespace auik::guizmo
             {
                 const f32 angle = i * (6.283185307f / 40.f);
                 const auto point = amal::vec2{std::cos(angle), std::sin(angle)} * appearance.center_radius;
-                line(previous, point, appearance.center_width, _frame.enabled ? appearance.center_color : disabled, 0);
+                const u32 color = _frame.enabled ? appearance.center_color : appearance.locked.normal;
+                line(previous, point, appearance.center_width, {color, color}, 0);
                 previous = point;
             }
         }
@@ -371,13 +432,10 @@ namespace auik::guizmo
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
             _vertices.clear();
             _indices.clear();
-            const auto tint = [this](u32 color, u32 handle) {
+            const auto tint = [this](Palette color, u32 handle) {
                 const bool highlighted =
                     handle && (handle == _hover || (std::has_single_bit(handle) && (_hover & handle) != 0u));
-                if (!highlighted) return color;
-                auto boost = [](u32 channel) { return std::min(channel * 11u / 10u, 255u); };
-                return detail::pack_rgba8(boost(color & 255u), boost((color >> 8u) & 255u),
-                                          boost((color >> 16u) & 255u), color >> 24u);
+                return highlighted ? color.hover : color.normal;
             };
             for (const auto &face : _faces)
             {
