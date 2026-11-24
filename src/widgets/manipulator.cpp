@@ -39,6 +39,10 @@ namespace auik::guizmo
         appearance.hover_shaft_width = shaft_hover.height();
         appearance.arrow_size = {arrow.width(), arrow.height()};
         appearance.hover_arrow_size = {arrow_hover.width(), arrow_hover.height()};
+        using Properties = detail::StylePropertiesBits;
+        const auto dimensions = Properties::width | Properties::height;
+        appearance.hover_shaft_geometry = bool(make_style_update_flags(shaft, shaft_hover, dimensions));
+        appearance.hover_arrow_geometry = bool(make_style_update_flags(arrow, arrow_hover, dimensions));
         auto plane_style = [&](u32 tag) -> PlaneAppearance {
             const auto &base = style(tag);
             const auto &hover = style(tag, StyleState::hover);
@@ -47,7 +51,9 @@ namespace auik::guizmo
                     {hover.width(), hover.border_radius(), hover.border_thickness()},
                     {base.background_color(), hover.background_color(), active.background_color()},
                     {base.border_color(), hover.border_color(), active.border_color()},
-                    hover.text_color()};
+                    hover.text_color(),
+                    bool(make_style_update_flags(
+                        base, hover, Properties::width | Properties::border_radius | Properties::border_thickness))};
         };
         appearance.planes = {plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_YZ),
                              plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_XZ),
@@ -66,10 +72,17 @@ namespace auik::guizmo
         appearance.guide_colors = {style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_X).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Y).background_color(),
                                    style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_GUIDE_Z).background_color()};
-        appearance.rotation_width = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION).height();
-        appearance.hover_rotation_width = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION, StyleState::hover).height();
-        appearance.scale_size = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE).width();
-        appearance.hover_scale_size = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE, StyleState::hover).width();
+        const auto &rotation = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION);
+        const auto &rotation_hover = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION, StyleState::hover);
+        const auto &scale = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE);
+        const auto &scale_hover = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_SCALE, StyleState::hover);
+        appearance.rotation_width = rotation.height();
+        appearance.hover_rotation_width = rotation_hover.height();
+        appearance.scale_size = scale.width();
+        appearance.hover_scale_size = scale_hover.width();
+        appearance.hover_rotation_geometry =
+            bool(make_style_update_flags(rotation, rotation_hover, Properties::height));
+        appearance.hover_scale_geometry = bool(make_style_update_flags(scale, scale_hover, Properties::width));
         appearance.edge_size = {edge.width(), edge.height()};
         appearance.edge_padding = edge.padding().x;
         appearance.edge_width = edge.border_thickness();
@@ -271,6 +284,7 @@ namespace auik::guizmo
             _frame.guides = 0;
             _frame.guide_length = 0.f;
             build_geometry(_hit_geometry);
+            _hover_geometry_mask = 0u;
         }
         if (std::exchange(_hover, 0u) || was_dragging)
         {
@@ -288,6 +302,7 @@ namespace auik::guizmo
         {
             _frame = frame;
             build_geometry(_hit_geometry);
+            _hover_geometry_mask = 0u;
             _dirty = true;
         }
         if (!changed && !_dirty && position() == pivot) return;
@@ -458,8 +473,25 @@ namespace auik::guizmo
         if (rebuild)
         {
             // Keep picking on the normal geometry so changing size cannot toggle hover.
-            const bool resize_handles = _hover && !_dragging;
-            if (resize_handles) build_geometry(_hover_geometry, _hover);
+            const auto &appearance = _frame.appearance;
+            bool resize_handles = false;
+            if (!_dragging && (_hover & _frame.enabled) != 0u)
+            {
+                if (_frame.operation == Operation::rotate) resize_handles = appearance.hover_rotation_geometry;
+                else
+                {
+                    const bool tip_resizes = _frame.operation == Operation::move ? appearance.hover_arrow_geometry
+                                                                                 : appearance.hover_scale_geometry;
+                    resize_handles = appearance.hover_shaft_geometry || tip_resizes;
+                    if (std::popcount(_hover) == 2)
+                        resize_handles |= appearance.planes[std::countr_zero(7u ^ _hover)].hover_geometry;
+                }
+            }
+            if (resize_handles && _hover_geometry_mask != _hover)
+            {
+                build_geometry(_hover_geometry, _hover);
+                _hover_geometry_mask = _hover;
+            }
             const auto &geometry = resize_handles ? _hover_geometry : _hit_geometry;
             const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size();
             const size_t index_count = 3 * geometry.faces.size() + 18 * geometry.segments.size();

@@ -65,6 +65,7 @@ namespace auik::guizmo
             PlaneSize size{}, hover_size{};
             Palette fill{}, border{};
             u32 axis_hover_color = 0u;
+            bool hover_geometry = false;
             bool operator==(const PlaneAppearance &) const = default;
         };
 
@@ -81,6 +82,8 @@ namespace auik::guizmo
             std::array<u32, 3> guide_colors{};
             f32 rotation_width = 0.f, hover_rotation_width = 0.f;
             f32 scale_size = 0.f, hover_scale_size = 0.f;
+            bool hover_shaft_geometry = false, hover_arrow_geometry = false;
+            bool hover_rotation_geometry = false, hover_scale_geometry = false;
             amal::vec2 edge_size{};
             f32 edge_padding = 0.f, edge_width = 0.f;
             Palette edge{};
@@ -137,6 +140,7 @@ namespace auik::guizmo
             acul::vector<Triangle> faces;
         };
         Geometry _hit_geometry, _hover_geometry;
+        u32 _hover_geometry_mask = 0u;
         u32 hit_handle(const amal::vec2 &screen) const;
         acul::vector<VertexStreamVertex> _vertices;
         acul::vector<VertexStreamIndex> _indices;
