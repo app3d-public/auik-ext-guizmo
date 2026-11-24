@@ -62,9 +62,8 @@ namespace auik::guizmo
 
         struct PlaneAppearance
         {
-            PlaneSize size{}, hover_size{};
+            PlaneSize size{};
             Palette fill{}, border{};
-            bool hover_geometry = false;
             bool operator==(const PlaneAppearance &) const = default;
         };
 
@@ -85,7 +84,7 @@ namespace auik::guizmo
             bool hover_shaft_geometry = false, hover_arrow_geometry = false;
             bool hover_rotation_geometry = false, hover_scale_geometry = false;
             amal::vec2 edge_size{};
-            f32 edge_padding = 0.f;
+            f32 edge_padding = 0.f, edge_rounding = 0.f;
             Palette edge{};
             bool operator==(const Appearance &) const = default;
         };
@@ -116,6 +115,7 @@ namespace auik::guizmo
             amal::vec2 a, b, c;
             Palette color;
             u32 handle;
+            u32 fringe_mask = 0u;
         };
         struct Projection
         {

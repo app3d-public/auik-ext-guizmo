@@ -76,8 +76,6 @@ guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)
     border-thickness: @(1px * @dpi)
-    @hover:
-        width: @(20px * @dpi)
 
 guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
     bg-color: (65, 130, 230, 0.25)
@@ -162,8 +160,9 @@ guizmo-manipulator-scale:
         width: @(10px * @dpi)
 
 guizmo-manipulator-edge:
-    size: (@(16px * @dpi), @(15px * @dpi))
+    size: (@(13px * @dpi), @(12px * @dpi))
+    radius: @(2.5px * @dpi)
     padding: @(12px * @dpi)
-    bg-color: @color-accent
+    bg-color: (72, 114, 255, 0.74)
     @hover:
-        bg-color: @color-accent-hover
+        bg-color: (91, 130, 255, 0.9)

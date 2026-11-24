@@ -48,11 +48,8 @@ namespace auik::guizmo
             const auto &hover = style(tag, StyleState::hover);
             const auto &active = style(tag, StyleState::active);
             return {{base.width(), base.border_radius(), base.border_thickness()},
-                    {hover.width(), hover.border_radius(), hover.border_thickness()},
                     {base.background_color(), hover.background_color(), active.background_color()},
-                    {base.border_color(), hover.border_color(), active.border_color()},
-                    bool(make_style_update_flags(
-                        base, hover, Properties::width | Properties::border_radius | Properties::border_thickness))};
+                    {base.border_color(), hover.border_color(), active.border_color()}};
         };
         appearance.planes = {plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_YZ),
                              plane_style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_PLANE_XZ),
@@ -86,6 +83,7 @@ namespace auik::guizmo
         appearance.hover_scale_geometry = bool(make_style_update_flags(scale, scale_hover, Properties::width));
         appearance.edge_size = {edge.width(), edge.height()};
         appearance.edge_padding = edge.padding().x;
+        appearance.edge_rounding = edge.border_radius();
         appearance.edge = {edge.background_color(),
                            style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE, StyleState::hover).background_color(),
                            edge.background_color()};
@@ -297,7 +295,7 @@ namespace auik::guizmo
 
     void Manipulator::place(const amal::vec2 &pivot, const Frame &frame)
     {
-        const bool changed = _hit_geometry.segments.empty() || !(_frame == frame);
+        const bool changed = (_hit_geometry.segments.empty() && _hit_geometry.faces.empty()) || !(_frame == frame);
         if (changed)
         {
             _frame = frame;
@@ -322,13 +320,48 @@ namespace auik::guizmo
         {
             const auto dir = _frame.edge_direction;
             const auto half = appearance.edge_size * 0.5f;
+            if (half.x <= 0.f || half.y <= 0.f) return;
             const auto tip = dir * half.y;
-            const auto left = -tip + normal(dir) * half.x;
-            const auto right = -tip - normal(dir) * half.x;
-            geometry.faces.push_back({tip, left, right, appearance.edge, edge_handle});
-            line(tip, left, 0.5f, appearance.edge, edge_handle);
-            line(tip, right, 0.5f, appearance.edge, edge_handle);
-            line(left, right, 0.5f, appearance.edge, edge_handle);
+            const amal::vec2 corners[] = {tip, -tip + normal(dir) * half.x, -tip - normal(dir) * half.x};
+            const f32 rounding = std::clamp(appearance.edge_rounding, 0.f, std::min(half.x, half.y) * 0.5f);
+            constexpr size_t arc_steps = 4;
+            std::array<amal::vec2, 3 * (arc_steps + 1)> contour{};
+            size_t count = 0;
+            for (size_t i = 0; i < std::size(corners); ++i)
+            {
+                const auto corner = corners[i];
+                if (rounding == 0.f)
+                {
+                    contour[count++] = corner;
+                    continue;
+                }
+                const auto start = corner + amal::normalize(corners[(i + 2) % 3] - corner) * rounding;
+                const auto end = corner + amal::normalize(corners[(i + 1) % 3] - corner) * rounding;
+                for (size_t step = 0; step <= arc_steps; ++step)
+                {
+                    const f32 t = f32(step) / arc_steps;
+                    contour[count++] = (1.f - t) * ((1.f - t) * start + t * corner) +
+                                       t * ((1.f - t) * corner + t * end);
+                }
+            }
+            // Fade outside the contour without drawing a second layer over the translucent fill.
+            const auto outer = [&](size_t i) {
+                const auto p = contour[i];
+                const auto before = amal::normalize(normal(contour[(i + count - 1) % count] - p));
+                const auto after = amal::normalize(normal(p - contour[(i + 1) % count]));
+                const auto join = amal::normalize(before + after);
+                return p + join / amal::dot(join, after);
+            };
+            auto outer_p = outer(0);
+            for (size_t i = 0; i < count; ++i)
+            {
+                const size_t next = (i + 1) % count;
+                const auto p = contour[i], q = contour[next], outer_q = outer(next);
+                geometry.faces.push_back({{}, p, q, appearance.edge, edge_handle});
+                geometry.faces.push_back({p, outer_q, q, appearance.edge, edge_handle, 0b010});
+                geometry.faces.push_back({p, outer_p, outer_q, appearance.edge, edge_handle, 0b110});
+                outer_p = outer_q;
+            }
             return;
         }
         for (u32 i = 0; i < 3; ++i)
@@ -405,7 +438,7 @@ namespace auik::guizmo
             u32 plane = 7u ^ bit;
             if (std::abs(u.x * v.y - u.y * v.x) < 100.f) continue;
             const auto &plane_style = (_frame.enabled & plane) ? appearance.planes[i] : appearance.locked_plane;
-            const auto &size = hover == plane && (_frame.enabled & plane) ? plane_style.hover_size : plane_style.size;
+            const auto &size = plane_style.size;
             const f32 half_size = size.width * 0.5f;
             if (half_size <= 0.f) continue;
             const f32 low = 0.46f - half_size / appearance.reach;
@@ -444,7 +477,7 @@ namespace auik::guizmo
         auto side = [](amal::vec2 a, amal::vec2 b) { return a.x * b.y - a.y * b.x; };
         for (const auto &face : _hit_geometry.faces)
         {
-            if (std::abs(side(face.b - face.a, face.c - face.a)) < 1e-5f) continue;
+            if (face.fringe_mask || std::abs(side(face.b - face.a, face.c - face.a)) < 1e-5f) continue;
             auto a = side(face.b - face.a, p - face.a);
             auto b = side(face.c - face.b, p - face.b);
             auto c = side(face.a - face.c, p - face.c);
@@ -452,6 +485,8 @@ namespace auik::guizmo
             constexpr f32 tolerance = 0.001f;
             if (std::min({a, b, c}) >= -tolerance || std::max({a, b, c}) <= tolerance) return face.handle;
         }
+        if (_frame.edge_direction != amal::vec2{} && !_hit_geometry.faces.empty() && amal::length(p) < 7.f)
+            return edge_handle;
         f32 best = 7.f;
         u32 hit = 0;
         for (auto &s : _hit_geometry.segments)
@@ -492,8 +527,6 @@ namespace auik::guizmo
                     const bool tip_resizes = _frame.operation == Operation::move ? appearance.hover_arrow_geometry
                                                                                  : appearance.hover_scale_geometry;
                     resize_handles = appearance.hover_shaft_geometry || tip_resizes;
-                    if (std::popcount(_hover) == 2)
-                        resize_handles |= appearance.planes[std::countr_zero(7u ^ _hover)].hover_geometry;
                 }
             }
             if (resize_handles && _hover_geometry_mask != _hover)
@@ -531,10 +564,12 @@ namespace auik::guizmo
             for (const auto &face : geometry.faces)
             {
                 const auto color = tint(face.color, face.handle);
-                for (auto p : {face.a, face.b, face.c})
+                const amal::vec2 points[] = {face.a, face.b, face.c};
+                for (u32 i = 0; i < std::size(points); ++i)
                 {
+                    const u32 vertex_color = face.fringe_mask & (1u << i) ? color & 0x00ffffffu : color;
                     _indices.push_back(static_cast<u32>(_vertices.size()));
-                    _vertices.push_back({.position = p, .z_order = depth, .color = color, .clip_id = clip_id()});
+                    append_vertex(_vertices, points[i], depth, vertex_color, clip_id());
                 }
             }
             for (const auto &s : geometry.segments)
