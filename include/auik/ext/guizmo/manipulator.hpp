@@ -23,7 +23,6 @@ namespace auik::guizmo
         u32 reversed_handles = 0u;   // Reverse these handles relative to the camera-facing orientation.
         amal::vec3 view_direction{}; // From the camera toward the pivot, or parallel view direction.
         bool show_offscreen = false;
-        bool show_guides = false;
     };
 
     class AUIK_EXT_GUIZMO_EXPORT Manipulator final : public Widget
@@ -35,7 +34,7 @@ namespace auik::guizmo
                      const amal::rect &clip_bounds, const Options &options);
         u32 begin_drag(const amal::vec2 &screen, bool drag_background = false);
         // Absolute from press: world translation, rotation in degrees, or scale factors.
-        bool drag_delta(const amal::vec2 &screen, amal::vec3 &result) const;
+        bool drag_delta(const amal::vec2 &screen, amal::vec3 &result);
         void end_drag();
         Operation operation() const { return _frame.operation; }
         // Returns an axis mask, or edge_handle for the offscreen indicator.
@@ -50,7 +49,7 @@ namespace auik::guizmo
     private:
         struct Palette
         {
-            u32 normal = 0u, hover = 0u;
+            u32 normal = 0u, hover = 0u, active = 0u;
             bool operator==(const Palette &) const = default;
         };
 
@@ -71,7 +70,7 @@ namespace auik::guizmo
             std::array<Palette, 3> axes{};
             Palette locked{};
             f32 guide_width = 0.f;
-            u32 guide_alpha = 0u;
+            std::array<u32, 3> guide_colors{};
             f32 rotation_width = 0.f, scale_size = 0.f;
             amal::vec2 edge_size{};
             f32 edge_padding = 0.f, edge_width = 0.f;
@@ -121,6 +120,7 @@ namespace auik::guizmo
         f32 _world_radius = 1.f, _drag_world_radius = 1.f;
         amal::vec2 _start{}, _center{};
         u32 _drag_mask = 0, _hover = 0;
+        bool _dragging = false;
         void place(const amal::vec2 &pivot, const Frame &frame);
         acul::vector<Segment> _segments;
         acul::vector<Triangle> _faces;

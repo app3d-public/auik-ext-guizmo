@@ -73,22 +73,28 @@ guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
     bg-color: (65, 130, 230, 0.25)
     border-color: (65, 130, 230, 0.85)
     @hover:
-        bg-color: (71, 143, 253, 0.42)
-        border-color: (71, 143, 253)
+        bg-color: (255, 180, 0)
+        border-color: (255, 180, 0)
+    @active:
+        bg-color: (89, 153, 250, 0.36)
 
 guizmo-manipulator-plane-xz extends @guizmo-manipulator-plane:
     bg-color: (130, 205, 35, 0.25)
     border-color: (130, 205, 35, 0.85)
     @hover:
-        bg-color: (143, 225, 39, 0.42)
-        border-color: (143, 225, 39)
+        bg-color: (255, 180, 0)
+        border-color: (255, 180, 0)
+    @active:
+        bg-color: (142, 228, 94, 0.36)
 
 guizmo-manipulator-plane-yz extends @guizmo-manipulator-plane:
     bg-color: (220, 67, 60, 0.25)
     border-color: (220, 67, 60, 0.85)
     @hover:
-        bg-color: (242, 73, 66, 0.42)
-        border-color: (242, 73, 66)
+        bg-color: (255, 180, 0)
+        border-color: (255, 180, 0)
+    @active:
+        bg-color: (246, 91, 83, 0.36)
 
 guizmo-manipulator-plane-locked extends @guizmo-manipulator-plane:
     bg-color: (133, 133, 133, 0.18)
@@ -97,24 +103,38 @@ guizmo-manipulator-plane-locked extends @guizmo-manipulator-plane:
 guizmo-manipulator-x:
     bg-color: (220, 67, 60)
     @hover:
-        bg-color: (242, 73, 66)
+        bg-color: (255, 180, 0)
+    @active:
+        bg-color: (246, 91, 83)
 
 guizmo-manipulator-y:
     bg-color: (130, 205, 35)
     @hover:
-        bg-color: (124, 211, 67)
+        bg-color: (255, 180, 0)
+    @active:
+        bg-color: (142, 228, 94)
 
 guizmo-manipulator-z:
     bg-color: (65, 130, 230)
     @hover:
-        bg-color: (71, 143, 253)
+        bg-color: (255, 180, 0)
+    @active:
+        bg-color: (89, 153, 250)
 
 guizmo-manipulator-locked:
     bg-color: (133, 133, 133, 0.745)
 
 guizmo-manipulator-guide:
     height: @(1px * @dpi)
-    bg-color: (255, 255, 255, 0.565)
+
+guizmo-manipulator-guide-x extends @guizmo-manipulator-guide:
+    bg-color: (255, 183, 179, 0.72)
+
+guizmo-manipulator-guide-y extends @guizmo-manipulator-guide:
+    bg-color: (194, 241, 163, 0.72)
+
+guizmo-manipulator-guide-z extends @guizmo-manipulator-guide:
+    bg-color: (179, 212, 255, 0.72)
 
 guizmo-manipulator-rotation:
     height: @(2.4px * @dpi)

@@ -12,6 +12,9 @@ guizmo-grid-line,0x4105D27C
 guizmo-manipulator-arrow,0x82EF2BE7
 guizmo-manipulator-edge,0xC64700F9
 guizmo-manipulator-guide,0xA129CF73
+guizmo-manipulator-guide-x,0x74F06780
+guizmo-manipulator-guide-y,0xC0746CB7
+guizmo-manipulator-guide-z,0x3B5639CB
 guizmo-manipulator-locked,0x7AB7E7B5
 guizmo-manipulator-plane,0xA27094D2
 guizmo-manipulator-plane-locked,0x54D8397A
