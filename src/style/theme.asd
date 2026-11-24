@@ -8,7 +8,7 @@ plot-grid:
 
 plot-grid-line:
     size: (1px, 1px)
-    bg-color: (255, 255, 255, 0.05)
+    bg-color: (255, 255, 255, 0.1)
 
 plot-grid-baseline:
     size: (1px, 1px)

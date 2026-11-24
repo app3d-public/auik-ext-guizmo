@@ -590,11 +590,18 @@ namespace auik::plot
             return bottom - (value - view.offset.y) / view.size.y * rect.size.y;
         };
 
+        const Style &frame = get_theme()->get_style(_style.id);
+        const u32 borders = frame.has_visible_border() ? frame.border_mask() : 0u;
+        const f32 border_width = frame.border_thickness();
         const f32 z_order = next_depth(_lines_depth_range);
         if (has_line_color && vertical_width > 0.0f)
             for (u32 i = 0u; i < vertical_count; ++i)
             {
                 const f32 x = map_x(first_value_x + static_cast<f32>(i) * step_x);
+                const f32 radius = vertical_width * 0.5f;
+                if (((borders & AUIK_BORDER_LEFT_BIT) && x - radius < rect.offset.x + border_width) ||
+                    ((borders & AUIK_BORDER_RIGHT_BIT) && x + radius > right - border_width))
+                    continue;
                 append_line(_lines, line_style,
                             {{x - vertical_width * 0.5f, rect.offset.y}, {vertical_width, rect.size.y}}, z_order,
                             clip_id());
@@ -604,6 +611,10 @@ namespace auik::plot
             for (u32 i = 0u; i < horizontal_count; ++i)
             {
                 const f32 y = map_y(first_value_y + static_cast<f32>(i) * step_y);
+                const f32 radius = horizontal_height * 0.5f;
+                if (((borders & AUIK_BORDER_TOP_BIT) && y - radius < rect.offset.y + border_width) ||
+                    ((borders & AUIK_BORDER_BOTTOM_BIT) && y + radius > bottom - border_width))
+                    continue;
                 append_line(_lines, line_style,
                             {{rect.offset.x, y - horizontal_height * 0.5f}, {rect.size.x, horizontal_height}}, z_order,
                             clip_id());
