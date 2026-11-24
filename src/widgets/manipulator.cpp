@@ -51,7 +51,6 @@ namespace auik::guizmo
                     {hover.width(), hover.border_radius(), hover.border_thickness()},
                     {base.background_color(), hover.background_color(), active.background_color()},
                     {base.border_color(), hover.border_color(), active.border_color()},
-                    hover.text_color(),
                     bool(make_style_update_flags(
                         base, hover, Properties::width | Properties::border_radius | Properties::border_thickness))};
         };
@@ -87,10 +86,9 @@ namespace auik::guizmo
         appearance.hover_scale_geometry = bool(make_style_update_flags(scale, scale_hover, Properties::width));
         appearance.edge_size = {edge.width(), edge.height()};
         appearance.edge_padding = edge.padding().x;
-        appearance.edge_width = edge.border_thickness();
-        appearance.edge = {edge.border_color(),
-                           style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE, StyleState::hover).border_color(),
-                           edge.border_color()};
+        appearance.edge = {edge.background_color(),
+                           style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_EDGE, StyleState::hover).background_color(),
+                           edge.background_color()};
         return appearance;
     }
 
@@ -322,11 +320,15 @@ namespace auik::guizmo
         const auto &appearance = _frame.appearance;
         if (_frame.edge_direction != amal::vec2{})
         {
-            auto dir = _frame.edge_direction;
+            const auto dir = _frame.edge_direction;
             const auto half = appearance.edge_size * 0.5f;
-            for (float side : {-1.f, 1.f})
-                line(-dir * half.y + normal(dir) * (side * half.x), dir * half.y, appearance.edge_width,
-                     appearance.edge, edge_handle);
+            const auto tip = dir * half.y;
+            const auto left = -tip + normal(dir) * half.x;
+            const auto right = -tip - normal(dir) * half.x;
+            geometry.faces.push_back({tip, left, right, appearance.edge, edge_handle});
+            line(tip, left, 0.5f, appearance.edge, edge_handle);
+            line(tip, right, 0.5f, appearance.edge, edge_handle);
+            line(left, right, 0.5f, appearance.edge, edge_handle);
             return;
         }
         for (u32 i = 0; i < 3; ++i)
@@ -507,9 +509,6 @@ namespace auik::guizmo
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
             _vertices.clear();
             _indices.clear();
-            u32 plane_axis_hover_color = 0u;
-            if (std::popcount(_hover) == 2 && (_hover & _frame.enabled) != 0u)
-                plane_axis_hover_color = _frame.appearance.planes[std::countr_zero(7u ^ _hover)].axis_hover_color;
             const u32 active_handle = _dragging ? _drag_handle : _hover;
             const u32 mask = _dragging ? _drag_mask : (_hover & (_frame.enabled | edge_handle));
             const bool dim_peers = (mask & 7u) != 0u && mask != 7u;
@@ -524,7 +523,6 @@ namespace auik::guizmo
                     return (color.normal & 0x00ffffffu) | (alpha << 24u);
                 }
                 if (_dragging) return color.active;
-                if (axis_selected && plane_axis_hover_color) return plane_axis_hover_color;
                 return color.hover;
             };
             // Emit guides first so the solid handles cover them at the same widget depth.

@@ -55,6 +55,10 @@ guizmo-control-curve-handle:
         bg-color: (255, 191, 66)
     @active:
         bg-color: (255, 191, 66)
+@guizmo-x-hover: (246, 91, 83)
+@guizmo-y-hover: (142, 228, 94)
+@guizmo-z-hover: (89, 153, 250)
+
 guizmo-manipulator-shaft:
     width: @(132px * @dpi)
     height: @(2.5px * @dpi)
@@ -71,7 +75,6 @@ guizmo-manipulator-arrow:
 guizmo-manipulator-plane:
     width: @(16px * @dpi)
     radius: @(4px * @dpi)
-    color: (255, 180, 0)
     border-thickness: @(1px * @dpi)
     @hover:
         width: @(20px * @dpi)
@@ -80,8 +83,8 @@ guizmo-manipulator-plane-xy extends @guizmo-manipulator-plane:
     bg-color: (65, 130, 230, 0.25)
     border-color: (65, 130, 230, 0.85)
     @hover:
-        bg-color: (255, 180, 0)
-        border-color: (255, 180, 0)
+        bg-color: @guizmo-z-hover
+        border-color: @guizmo-z-hover
     @active:
         bg-color: (89, 153, 250, 0.36)
 
@@ -89,8 +92,8 @@ guizmo-manipulator-plane-xz extends @guizmo-manipulator-plane:
     bg-color: (130, 205, 35, 0.25)
     border-color: (130, 205, 35, 0.85)
     @hover:
-        bg-color: (255, 180, 0)
-        border-color: (255, 180, 0)
+        bg-color: @guizmo-y-hover
+        border-color: @guizmo-y-hover
     @active:
         bg-color: (142, 228, 94, 0.36)
 
@@ -98,8 +101,8 @@ guizmo-manipulator-plane-yz extends @guizmo-manipulator-plane:
     bg-color: (220, 67, 60, 0.25)
     border-color: (220, 67, 60, 0.85)
     @hover:
-        bg-color: (255, 180, 0)
-        border-color: (255, 180, 0)
+        bg-color: @guizmo-x-hover
+        border-color: @guizmo-x-hover
     @active:
         bg-color: (246, 91, 83, 0.36)
 
@@ -110,21 +113,21 @@ guizmo-manipulator-plane-locked extends @guizmo-manipulator-plane:
 guizmo-manipulator-x:
     bg-color: (220, 67, 60)
     @hover:
-        bg-color: (255, 180, 0)
+        bg-color: @guizmo-x-hover
     @active:
         bg-color: (246, 91, 83)
 
 guizmo-manipulator-y:
     bg-color: (130, 205, 35)
     @hover:
-        bg-color: (255, 180, 0)
+        bg-color: @guizmo-y-hover
     @active:
         bg-color: (142, 228, 94)
 
 guizmo-manipulator-z:
     bg-color: (65, 130, 230)
     @hover:
-        bg-color: (255, 180, 0)
+        bg-color: @guizmo-z-hover
     @active:
         bg-color: (89, 153, 250)
 
@@ -159,9 +162,8 @@ guizmo-manipulator-scale:
         width: @(10px * @dpi)
 
 guizmo-manipulator-edge:
-    size: (@(14px * @dpi), @(13px * @dpi))
+    size: (@(16px * @dpi), @(15px * @dpi))
     padding: @(12px * @dpi)
-    border-thickness: @(3px * @dpi)
-    border-color: (238, 238, 238)
+    bg-color: @color-accent
     @hover:
-        border-color: (255, 255, 255)
+        bg-color: @color-accent-hover

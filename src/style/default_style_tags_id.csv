@@ -28,3 +28,6 @@ guizmo-manipulator-shaft,0x3F22B98B
 guizmo-manipulator-x,0x5C802E43
 guizmo-manipulator-y,0x1E82AA33
 guizmo-manipulator-z,0xD42ABE91
+guizmo-x-hover,0x89832136
+guizmo-y-hover,0xD7D9CC04
+guizmo-z-hover,0x19B8B4C9
