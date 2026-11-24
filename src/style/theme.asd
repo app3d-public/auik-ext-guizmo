@@ -56,7 +56,7 @@ guizmo-control-curve-handle:
     @active:
         bg-color: (255, 191, 66)
 guizmo-manipulator-shaft:
-    width: @(108px * @dpi)
+    width: @(132px * @dpi)
     height: @(2.5px * @dpi)
 
 guizmo-manipulator-arrow:
