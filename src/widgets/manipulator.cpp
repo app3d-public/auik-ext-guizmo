@@ -469,8 +469,6 @@ namespace auik::guizmo
                     geometry.faces.push_back({{}, previous, next, sector, 0u});
                     previous = next;
                 }
-                line({}, point(begin), width, color, handle);
-                line({}, previous, width, color, handle);
             };
             for (u32 remaining = _frame.available; remaining; remaining &= remaining - 1u)
             {
