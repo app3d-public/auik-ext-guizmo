@@ -680,7 +680,7 @@ namespace auik::guizmo
             constexpr u32 ring_segments = 64u;
             constexpr u32 ring_samples = 8u;
             const bool show_view_ring = has_view_ring();
-            const bool show_drag_pivot = _dragging && _drag_handle && _frame.operation == Operation::move &&
+            const bool show_drag_pivot = _dragging && _drag_handle && _frame.operation != Operation::rotate &&
                                          _frame.edge_direction == amal::vec2{} && appearance.drag_pivot_diameter > 0.f;
             const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size() +
                                         (show_drag_pivot ? 1u + 2u * pivot_segments : 0u) +
