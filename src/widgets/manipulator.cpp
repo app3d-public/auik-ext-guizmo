@@ -653,6 +653,10 @@ namespace auik::guizmo
 
     void Manipulator::draw(DrawCtx &ctx)
     {
+        auto *stream = get_primary_vertex_stream();
+        // Layout can update the projection and draw before the record pass reaches this widget.
+        if ((ctx.reason & DrawReasonBits::record) && _record.render_id != AUIK_INVALID_DRAW_DATA_ID)
+            invalidate_render_draw(stream, _record);
         const auto depth = get_z_order();
         bool rebuild = _dirty || _depth != depth || _clip != clip_id();
         if (rebuild)
@@ -690,7 +694,7 @@ namespace auik::guizmo
                                        (show_view_ring ? ring_segments * (ring_samples - 1u) * 6u : 0u);
             if ((_vertices.size() != vertex_count || _indices.size() != index_count) &&
                 _record.render_id != AUIK_INVALID_DRAW_DATA_ID)
-                invalidate_render_draw(get_primary_vertex_stream(), _record);
+                invalidate_render_draw(stream, _record);
             _vertices.clear();
             _indices.clear();
             const u32 active_handle = _dragging ? _drag_handle : _hover;
@@ -791,6 +795,6 @@ namespace auik::guizmo
         }
         VertexStreamBatchData batch{_vertices.data(), _indices.data(), static_cast<u32>(_vertices.size()),
                                     static_cast<u32>(_indices.size()), position()};
-        emit_vertex_stream_batch(ctx, get_primary_vertex_stream(), _record, batch, get_rect(), false, !rebuild);
+        emit_vertex_stream_batch(ctx, stream, _record, batch, get_rect(), false, !rebuild);
     }
 } // namespace auik::guizmo

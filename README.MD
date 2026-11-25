@@ -1,30 +1,20 @@
 # Auik Guizmo Extension
 
-`auik-ext-guizmo` is an extension for the [Auik](https://repos.wusikijeronii.me/app3d/auik) library for viewport transform handles and curve editing.
-The move, rotate and scale handles follow [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) interaction conventions. Pass the camera matrix, pivot and viewport to `Manipulator::project`. Forward pointer input to `begin_drag`, `drag_delta` and `end_drag`. The host supplies the enabled-axis mask and can enable full-axis guides or the offscreen indicator.
+An extension that provides interactive editing widgets for the [Auik](https://repos.wusikijeronii.me/app3d/auik) UI library.
 
-The extension also provides an interactive curve editor with canvas navigation, curve and control point editing, selection, and customizable grid visualization.
+## Widgets
 
-[<img src="./screenshots/curve_canvas.png" alt="screenshot" width="350"/>](./screenshots/curve_canvas.png)
+### Curve Editor
 
-## Usage
+Edit Bézier curves by selecting and moving control points and their tangent handles on a customizable grid.
 
-```cpp
-amal::bezier_curve2 curve;
-curve.points.push_back({{-1.0f, -0.5f}, {-1.0f, -0.5f}, {-0.7f, -0.5f}});
-curve.points.push_back({{ 0.0f,  0.5f}, {-0.3f,  0.2f}, { 0.3f,  0.8f}});
-curve.points.push_back({{ 1.0f, -0.5f}, { 0.7f, -0.5f}, { 1.0f, -0.5f}});
+[<img src="./screenshots/curve_canvas.png" alt="Bézier curve editor" width="350"/>](./screenshots/curve_canvas.png)
 
-auto* curve_widget = auik::guizmo::make_control_curve(curve_id, std::move(curve));
-curve_widget->set_view({{-1.0f, -1.0f}, {2.0f, 2.0f}});
+### Manipulators
 
-auto* grid = auik::guizmo::make_grid(grid_id, AUIK_SIZE_FILL, 10u, amal::axis::x);
-auto *canvas = auik::guizmo::make_curve_canvas(canvas_id, grid, curve_widget,
-                                              auik::guizmo::CurveCanvasFlagBits::rubber_band,
-                                              AUIK_SIZE_FILL
-                                              );
-window->add_child(canvas);
-```
+Move, rotate, and scale objects in a 3D viewport. Move and scale support axis and plane handles, and rotation can follow an axis or the view direction.
+
+[<img src="./screenshots/transform-gizmos.png" alt="Transform gizmos" width="550"/>](./screenshots/transform-gizmos.png)
 
 ## Building
 Auik is distributed as a CMake project and is intended to be integrated as a submodule.
