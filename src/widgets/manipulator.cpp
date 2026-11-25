@@ -487,8 +487,9 @@ namespace auik::guizmo
                 const bool full = _frame.rotation_handle == bit || a * a + b * b < 1e-6f;
                 const f32 width = hover == bit && (_frame.enabled & bit) ? appearance.hover_rotation_width
                                                                         : appearance.rotation_width;
+                // view_direction points from the camera to the pivot. Keep the arc facing the camera.
                 ring(bit, color, appearance.rotation_sector_colors[axis], width,
-                     full ? 0.f : std::atan2(b, a) - pi * 0.5f, full ? turn : pi);
+                     full ? 0.f : std::atan2(b, a) + pi * 0.5f, full ? turn : pi);
             }
             if (_frame.available == 7u && (!_frame.rotation_handle || _frame.rotation_handle == view_ring_handle))
             {
