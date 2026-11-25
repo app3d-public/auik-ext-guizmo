@@ -83,8 +83,12 @@ namespace auik::guizmo
         appearance.view_ring = {view_ring.background_color(),
             style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_VIEW_RING, StyleState::hover).background_color(),
             style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_VIEW_RING, StyleState::active).background_color()};
-        appearance.rotation_sector_alpha =
-            style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION_SECTOR).background_color() & 0xff000000u;
+        constexpr u32 sector_tags[] = {AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION_SECTOR_X,
+                                       AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION_SECTOR_Y,
+                                       AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION_SECTOR_Z};
+        for (u32 axis = 0; axis < 3; ++axis)
+            appearance.rotation_sector_colors[axis] = style(sector_tags[axis]).background_color();
+        appearance.view_sector_color = style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_ROTATION_SECTOR).background_color();
         appearance.rotation_width = rotation.height();
         appearance.hover_rotation_width = rotation_hover.height();
         appearance.scale_size = scale.width();
@@ -446,7 +450,7 @@ namespace auik::guizmo
             constexpr f32 pi = std::numbers::pi_v<f32>;
             constexpr f32 turn = 2.f * pi;
             constexpr int steps = 64;
-            auto ring = [&](u32 handle, Palette color, f32 width, f32 start, f32 sweep) {
+            auto ring = [&](u32 handle, Palette color, u32 fill, f32 width, f32 start, f32 sweep) {
                 const auto [u, v] = rotation_axes(_frame, handle);
                 auto point = [&](f32 theta) { return u * std::cos(theta) + v * std::sin(theta); };
                 auto previous = point(start);
@@ -458,7 +462,6 @@ namespace auik::guizmo
                 }
                 if (_frame.rotation_handle != handle || std::abs(_frame.rotation_sweep) < 1e-5f) return;
 
-                const u32 fill = (color.active & 0x00ffffffu) | appearance.rotation_sector_alpha;
                 const Palette sector{fill, fill, fill};
                 const f32 begin = _frame.rotation_start, angle = _frame.rotation_sweep;
                 const int sector_steps = std::max(1, static_cast<int>(std::ceil(steps * std::abs(angle) / turn)));
@@ -484,7 +487,8 @@ namespace auik::guizmo
                 const bool full = _frame.rotation_handle == bit || a * a + b * b < 1e-6f;
                 const f32 width = hover == bit && (_frame.enabled & bit) ? appearance.hover_rotation_width
                                                                         : appearance.rotation_width;
-                ring(bit, color, width, full ? 0.f : std::atan2(b, a) - pi * 0.5f, full ? turn : pi);
+                ring(bit, color, appearance.rotation_sector_colors[axis], width,
+                     full ? 0.f : std::atan2(b, a) - pi * 0.5f, full ? turn : pi);
             }
             if (_frame.available == 7u && (!_frame.rotation_handle || _frame.rotation_handle == view_ring_handle))
             {
@@ -494,7 +498,7 @@ namespace auik::guizmo
                     const u32 locked = (color.normal & 0x00ffffffu) | appearance.locked_alpha;
                     color = {locked, locked, locked};
                 }
-                ring(view_ring_handle, color, appearance.view_ring_width, 0.f, turn);
+                ring(view_ring_handle, color, appearance.view_sector_color, appearance.view_ring_width, 0.f, turn);
             }
             return;
         }

@@ -85,7 +85,8 @@ namespace auik::guizmo
             std::array<u32, 3> guide_colors{};
             f32 rotation_radius = 0.f, rotation_width = 0.f, hover_rotation_width = 0.f;
             f32 view_ring_gap = 0.f, view_ring_width = 0.f;
-            u32 rotation_sector_alpha = 0u;
+            std::array<u32, 3> rotation_sector_colors{};
+            u32 view_sector_color = 0u;
             Palette view_ring{};
             f32 scale_size = 0.f, hover_scale_size = 0.f;
             bool hover_shaft_geometry = false, hover_arrow_geometry = false;

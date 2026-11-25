@@ -168,7 +168,16 @@ guizmo-manipulator-view-ring:
         bg-color: (245, 245, 245)
 
 guizmo-manipulator-rotation-sector:
-    bg-color: (255, 255, 255, 0.20)
+    bg-color: (245, 245, 245, 0.20)
+
+guizmo-manipulator-rotation-sector-x extends @guizmo-manipulator-rotation-sector:
+    bg-color: (246, 91, 83, 0.20)
+
+guizmo-manipulator-rotation-sector-y extends @guizmo-manipulator-rotation-sector:
+    bg-color: (142, 228, 94, 0.20)
+
+guizmo-manipulator-rotation-sector-z extends @guizmo-manipulator-rotation-sector:
+    bg-color: (89, 153, 250, 0.20)
 
 guizmo-manipulator-scale:
     width: @(8px * @dpi)
