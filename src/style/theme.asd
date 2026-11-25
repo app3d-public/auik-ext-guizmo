@@ -161,6 +161,8 @@ guizmo-manipulator-rotation:
 guizmo-manipulator-view-ring:
     height: @(1.5px * @dpi)
     padding: @(11px * @dpi)
+    border-thickness: @(1px * @dpi)
+    border-color: (24, 24, 27, 0.90)
     bg-color: (228, 228, 228, 0.85)
     @hover:
         bg-color: (255, 255, 255)

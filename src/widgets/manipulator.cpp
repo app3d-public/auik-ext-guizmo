@@ -80,6 +80,8 @@ namespace auik::guizmo
         appearance.rotation_radius = rotation.width();
         appearance.view_ring_gap = view_ring.padding().x;
         appearance.view_ring_width = view_ring.height();
+        appearance.view_ring_outline_width = view_ring.border_thickness();
+        appearance.view_ring_outline_color = view_ring.border_color();
         appearance.view_ring = {view_ring.background_color(),
             style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_VIEW_RING, StyleState::hover).background_color(),
             style(AUIK_STYLE_TAG_GUIZMO_MANIPULATOR_VIEW_RING, StyleState::active).background_color()};
@@ -453,19 +455,22 @@ namespace auik::guizmo
             auto ring = [&](u32 handle, Palette color, u32 fill, f32 width, f32 start, f32 sweep) {
                 const auto [u, v] = rotation_axes(_frame, handle);
                 auto point = [&](f32 theta) { return u * std::cos(theta) + v * std::sin(theta); };
-                auto previous = point(start);
-                for (int step = 1; step <= steps; ++step)
+                if (handle != view_ring_handle)
                 {
-                    auto next = point(start + sweep * step / steps);
-                    line(previous, next, width, color, handle);
-                    previous = next;
+                    auto previous = point(start);
+                    for (int step = 1; step <= steps; ++step)
+                    {
+                        const auto next = point(start + sweep * step / steps);
+                        line(previous, next, width, color, handle);
+                        previous = next;
+                    }
                 }
                 if (_frame.rotation_handle != handle || std::abs(_frame.rotation_sweep) < 1e-5f) return;
 
                 const Palette sector{fill, fill, fill};
                 const f32 begin = _frame.rotation_start, angle = _frame.rotation_sweep;
                 const int sector_steps = std::max(1, static_cast<int>(std::ceil(steps * std::abs(angle) / turn)));
-                previous = point(begin);
+                auto previous = point(begin);
                 for (int step = 1; step <= sector_steps; ++step)
                 {
                     const auto next = point(begin + angle * step / sector_steps);
@@ -491,16 +496,8 @@ namespace auik::guizmo
                 ring(bit, color, appearance.rotation_sector_colors[axis], width,
                      full ? 0.f : std::atan2(b, a) + pi * 0.5f, full ? turn : pi);
             }
-            if (_frame.available == 7u && (!_frame.rotation_handle || _frame.rotation_handle == view_ring_handle))
-            {
-                auto color = appearance.view_ring;
-                if (_frame.enabled != 7u)
-                {
-                    const u32 locked = (color.normal & 0x00ffffffu) | appearance.locked_alpha;
-                    color = {locked, locked, locked};
-                }
-                ring(view_ring_handle, color, appearance.view_sector_color, appearance.view_ring_width, 0.f, turn);
-            }
+            if (_frame.rotation_handle == view_ring_handle && has_view_ring())
+                ring(view_ring_handle, appearance.view_ring, appearance.view_sector_color, 0.f, 0.f, turn);
             return;
         }
 
@@ -589,6 +586,13 @@ namespace auik::guizmo
         }
     }
 
+    bool Manipulator::has_view_ring() const
+    {
+        return _frame.operation == Operation::rotate && _frame.available == 7u &&
+               _frame.edge_direction == amal::vec2{} && _frame.appearance.view_ring_width > 0.f &&
+               (!_frame.rotation_handle || _frame.rotation_handle == view_ring_handle);
+    }
+
     u32 Manipulator::pick(const amal::vec2 &screen) const
     {
         u32 hit = hit_handle(screen);
@@ -615,6 +619,17 @@ namespace auik::guizmo
             return edge_handle;
         f32 best = 7.f;
         u32 hit = 0;
+        if (has_view_ring())
+        {
+            const auto &appearance = _frame.appearance;
+            const f32 radius = appearance.rotation_radius + appearance.view_ring_gap;
+            const f32 distance = std::abs(amal::length(p) - radius);
+            if (distance < best)
+            {
+                best = distance;
+                hit = view_ring_handle;
+            }
+        }
         for (auto &s : _hit_geometry.segments)
         {
             if (!s.handle) continue;
@@ -662,12 +677,17 @@ namespace auik::guizmo
             }
             const auto &geometry = resize_handles ? _hover_geometry : _hit_geometry;
             constexpr u32 pivot_segments = 20u;
+            constexpr u32 ring_segments = 64u;
+            constexpr u32 ring_samples = 8u;
+            const bool show_view_ring = has_view_ring();
             const bool show_drag_pivot = _dragging && _drag_handle && _frame.operation == Operation::move &&
                                          _frame.edge_direction == amal::vec2{} && appearance.drag_pivot_diameter > 0.f;
             const size_t vertex_count = 3 * geometry.faces.size() + 8 * geometry.segments.size() +
-                                        (show_drag_pivot ? 1u + 2u * pivot_segments : 0u);
+                                        (show_drag_pivot ? 1u + 2u * pivot_segments : 0u) +
+                                        (show_view_ring ? ring_segments * ring_samples : 0u);
             const size_t index_count = 3 * geometry.faces.size() + 18 * geometry.segments.size() +
-                                       (show_drag_pivot ? 9u * pivot_segments : 0u);
+                                       (show_drag_pivot ? 9u * pivot_segments : 0u) +
+                                       (show_view_ring ? ring_segments * (ring_samples - 1u) * 6u : 0u);
             if ((_vertices.size() != vertex_count || _indices.size() != index_count) &&
                 _record.render_id != AUIK_INVALID_DRAW_DATA_ID)
                 invalidate_render_draw(get_primary_vertex_stream(), _record);
@@ -707,6 +727,44 @@ namespace auik::guizmo
             for (const auto &s : geometry.segments)
                 if (s.handle)
                     append_segment(_vertices, _indices, s.a, s.b, s.width, depth, tint(s.color, s.handle), clip_id());
+            if (show_view_ring)
+            {
+                const f32 radius = appearance.rotation_radius + appearance.view_ring_gap;
+                const f32 half_width = appearance.view_ring_width * 0.5f;
+                const f32 outline_width = std::max(0.f, appearance.view_ring_outline_width);
+                const f32 inner = radius - half_width, outer = radius + half_width;
+                u32 color = tint(appearance.view_ring, view_ring_handle);
+                const u32 border_color = appearance.view_ring_outline_color;
+                u32 outline = tint({border_color, border_color, border_color}, view_ring_handle);
+                if (_frame.enabled != 7u)
+                {
+                    color = (color & 0x00ffffffu) | appearance.locked_alpha;
+                    outline = (outline & 0x00ffffffu) |
+                              ((((outline >> 24u) * (appearance.locked_alpha >> 24u) + 127u) / 255u) << 24u);
+                }
+                if (outline_width == 0.f) outline = color;
+                // One continuous strip keeps the two fringes and the colored band from overlapping.
+                const f32 transition = std::min({0.35f, outline_width * 0.5f, half_width * 0.5f});
+                const f32 radii[] = {inner - outline_width - 1.f, inner - outline_width, inner - transition,
+                                     inner + transition, outer - transition, outer + transition,
+                                     outer + outline_width, outer + outline_width + 1.f};
+                const u32 transparent = outline & 0x00ffffffu;
+                const u32 colors[] = {transparent, outline, outline, color, color, outline, outline, transparent};
+                const u32 first = static_cast<u32>(_vertices.size());
+                for (u32 i = 0; i < ring_segments; ++i)
+                {
+                    const f32 angle = 2.f * std::numbers::pi_v<f32> * i / ring_segments;
+                    const amal::vec2 dir{std::cos(angle), std::sin(angle)};
+                    for (u32 j = 0; j < ring_samples; ++j)
+                        append_vertex(_vertices, dir * std::max(0.f, radii[j]), depth, colors[j], clip_id());
+                    const u32 current = first + ring_samples * i;
+                    const u32 next = first + ring_samples * ((i + 1u) % ring_segments);
+                    for (u32 j = 0; j + 1u < ring_samples; ++j)
+                        for (u32 index : {current + j, current + j + 1u, next + j,
+                                          current + j + 1u, next + j + 1u, next + j})
+                            _indices.push_back(index);
+                }
+            }
             if (show_drag_pivot)
             {
                 const u32 color = std::has_single_bit(_drag_handle)

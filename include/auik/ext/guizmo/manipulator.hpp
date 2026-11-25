@@ -84,7 +84,8 @@ namespace auik::guizmo
             f32 guide_width = 0.f, drag_pivot_diameter = 0.f;
             std::array<u32, 3> guide_colors{};
             f32 rotation_radius = 0.f, rotation_width = 0.f, hover_rotation_width = 0.f;
-            f32 view_ring_gap = 0.f, view_ring_width = 0.f;
+            f32 view_ring_gap = 0.f, view_ring_width = 0.f, view_ring_outline_width = 0.f;
+            u32 view_ring_outline_color = 0u;
             std::array<u32, 3> rotation_sector_colors{};
             u32 view_sector_color = 0u;
             Palette view_ring{};
@@ -155,6 +156,7 @@ namespace auik::guizmo
         };
         Geometry _hit_geometry, _hover_geometry;
         u32 _hover_geometry_mask = 0u;
+        bool has_view_ring() const;
         u32 hit_handle(const amal::vec2 &screen) const;
         acul::vector<VertexStreamVertex> _vertices;
         acul::vector<VertexStreamIndex> _indices;
