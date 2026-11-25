@@ -1,12 +1,16 @@
-#include "line_geometry.hpp"
 #include <algorithm>
 #include <auik/auik.hpp>
+#include <auik/detail/vertex_draw/lines.hpp>
 #include <auik/ext/guizmo/curve.hpp>
 #include <limits>
 #include "amal/bezier.hpp"
 
 namespace auik::guizmo
 {
+    using detail::append_aa_strip_indices;
+    using detail::append_segment;
+    using detail::append_vertex;
+
     namespace
     {
         template <class Container>
