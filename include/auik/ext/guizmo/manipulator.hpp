@@ -23,6 +23,7 @@ namespace auik::guizmo
         u32 reversed_handles = 0u;   // Reverse these handles relative to the camera-facing orientation.
         amal::vec3 view_direction{}; // From the camera toward the pivot, or parallel view direction.
         bool show_offscreen = false;
+        u32 axes = 7u; // Include these X/Y/Z handles. enabled_axes locks handles without hiding them.
     };
 
     class AUIK_EXT_GUIZMO_EXPORT Manipulator final : public Widget
@@ -35,11 +36,14 @@ namespace auik::guizmo
         u32 begin_drag(const amal::vec2 &screen, bool drag_background = false);
         // Absolute from press: world translation, rotation in degrees, or scale factors.
         bool drag_delta(const amal::vec2 &screen, amal::vec3 &result);
+        bool drag_delta(const amal::vec2 &screen, amal::vec3 &result, bool snap_rotation);
         void end_drag();
         Operation operation() const { return _frame.operation; }
         // Returns the available handle, including both bits for a plane, or edge_handle.
         // begin_drag returns only the axes the drag can change.
         static constexpr u32 edge_handle = 8;
+        // The view ring reports its rotation angle in result.z.
+        static constexpr u32 view_ring_handle = 16;
         void set_hover(u32 handle);
         u32 pick(const amal::vec2 &screen) const;
         StyleUpdateFlags update_style() override;
@@ -79,7 +83,10 @@ namespace auik::guizmo
             u32 dimmed_alpha = 255u, hover_dimmed_alpha = 255u;
             f32 guide_width = 0.f, drag_pivot_diameter = 0.f;
             std::array<u32, 3> guide_colors{};
-            f32 rotation_width = 0.f, hover_rotation_width = 0.f;
+            f32 rotation_radius = 0.f, rotation_width = 0.f, hover_rotation_width = 0.f;
+            f32 view_ring_gap = 0.f, view_ring_width = 0.f;
+            u32 rotation_sector_alpha = 0u;
+            Palette view_ring{};
             f32 scale_size = 0.f, hover_scale_size = 0.f;
             bool hover_shaft_geometry = false, hover_arrow_geometry = false;
             bool hover_rotation_geometry = false, hover_scale_geometry = false;
@@ -93,12 +100,15 @@ namespace auik::guizmo
         {
             Operation operation = Operation::move;
             std::array<amal::vec2, 3> axes{}; // projected world axes in logical pixels
-            u32 enabled = 7;
+            u32 available = 7u;
+            u32 enabled = 7u;
             u32 reversed_handles = 0u;
             Appearance appearance;
             u32 guides = 0;
             amal::vec3 view_direction{};
             f32 guide_length = 0;
+            u32 rotation_handle = 0u;
+            f32 rotation_start = 0.f, rotation_sweep = 0.f;
             amal::vec2 edge_direction{};
             bool operator==(const Frame &) const = default;
         };
@@ -133,6 +143,9 @@ namespace auik::guizmo
         amal::vec2 _start{}, _center{};
         u32 _drag_mask = 0, _drag_handle = 0, _hover = 0;
         bool _dragging = false;
+        f32 _rotation_input = 0.f, _rotation_angle = 0.f;
+        f32 _rotation_start = 0.f, _rotation_sweep = 0.f;
+        static std::array<amal::vec2, 2> rotation_axes(const Frame &frame, u32 handle);
         void place(const amal::vec2 &pivot, const Frame &frame);
         struct Geometry
         {

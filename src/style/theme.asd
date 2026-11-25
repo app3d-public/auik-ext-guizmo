@@ -153,9 +153,22 @@ guizmo-manipulator-guide-z extends @guizmo-manipulator-guide:
     bg-color: (179, 212, 255, 0.72)
 
 guizmo-manipulator-rotation:
-    height: @(2.4px * @dpi)
+    width: @(78px * @dpi)
+    height: @(2px * @dpi)
     @hover:
-        height: @(3.6px * @dpi)
+        height: @(2.5px * @dpi)
+
+guizmo-manipulator-view-ring:
+    height: @(1.5px * @dpi)
+    padding: @(11px * @dpi)
+    bg-color: (228, 228, 228, 0.85)
+    @hover:
+        bg-color: (255, 255, 255)
+    @active:
+        bg-color: (245, 245, 245)
+
+guizmo-manipulator-rotation-sector:
+    bg-color: (255, 255, 255, 0.20)
 
 guizmo-manipulator-scale:
     width: @(8px * @dpi)

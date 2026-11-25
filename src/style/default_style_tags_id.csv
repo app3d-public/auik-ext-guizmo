@@ -24,8 +24,10 @@ guizmo-manipulator-plane-xy,0xB6D510A0
 guizmo-manipulator-plane-xz,0x1C38BEE7
 guizmo-manipulator-plane-yz,0x1231B906
 guizmo-manipulator-rotation,0x7EE7C8E9
+guizmo-manipulator-rotation-sector,0x6429B03B
 guizmo-manipulator-scale,0x9D630F6D
 guizmo-manipulator-shaft,0x3F22B98B
+guizmo-manipulator-view-ring,0x22C72F07
 guizmo-manipulator-x,0x5C802E43
 guizmo-manipulator-y,0x1E82AA33
 guizmo-manipulator-z,0xD42ABE91
