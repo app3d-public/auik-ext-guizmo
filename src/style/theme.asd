@@ -183,8 +183,6 @@ guizmo-manipulator-rotation-sector-z extends @guizmo-manipulator-rotation-sector
 
 guizmo-manipulator-scale:
     width: @(8px * @dpi)
-    @hover:
-        width: @(10px * @dpi)
 
 guizmo-manipulator-edge:
     size: (@(13px * @dpi), @(12px * @dpi))
