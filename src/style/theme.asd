@@ -183,3 +183,15 @@ guizmo-manipulator-edge:
     bg-color: (72, 114, 255, 0.74)
     @hover:
         bg-color: (91, 130, 255, 0.9)
+
+guizmo-control:
+    width: @(10px * @dpi)
+    bg-color: (231, 202, 97)
+    @hover:
+        bg-color: (255, 240, 173)
+    @active:
+        bg-color: (255, 184, 66)
+
+guizmo-control-line:
+    height: @(1px * @dpi)
+    bg-color: (231, 202, 97, 0.85)

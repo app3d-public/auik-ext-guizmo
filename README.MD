@@ -10,11 +10,17 @@ Edit Bézier curves by selecting and moving control points and their tangent han
 
 [<img src="./screenshots/curve_canvas.png" alt="Bézier curve editor" width="350"/>](./screenshots/curve_canvas.png)
 
-### Manipulators
+### Axis Manipulator
 
 Move, rotate, and scale objects in a 3D viewport. Move and scale support axis and plane handles, and rotation can follow an axis or the view direction.
 
 [<img src="./screenshots/transform-gizmos.png" alt="Transform gizmos" width="550"/>](./screenshots/transform-gizmos.png)
+
+### Control Manipulator
+
+Drag a point along a chosen axis to edit a value. An optional line connects the control to a second point. The line can stay visible or appear during the drag.
+
+[<img src="./screenshots/control-manipulator.png" alt="Control gizmo" width="350"/>](./screenshots/control-manipulator.png)
 
 ## Building
 Auik is distributed as a CMake project and is intended to be integrated as a submodule.

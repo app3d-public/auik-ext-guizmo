@@ -1,7 +1,9 @@
 Tag,ID
+guizmo-control,0xBE99F330
 guizmo-control-curve-handle,0x444DBBD1
 guizmo-control-curve-line,0x53A3166A
 guizmo-control-curve-point,0xD2FFACF5
+guizmo-control-line,0x4B3E14BC
 guizmo-curve,0x0C1A1B99
 guizmo-curve-line,0xBF14C281
 guizmo-grid,0xE4649756
