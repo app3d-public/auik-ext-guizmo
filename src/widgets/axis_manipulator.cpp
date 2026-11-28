@@ -674,7 +674,7 @@ namespace auik::guizmo
         }
         const auto &geometry = resize_handles ? _hover_geometry : _hit_geometry;
         constexpr u32 ring_segments = 64u;
-        constexpr u32 ring_samples = 8u;
+        const u32 ring_samples = auik::detail::stroke_sample_count(appearance.view_ring_outline_width);
         const bool show_view_ring = has_view_ring();
         const bool show_drag_pivot = _dragging && _drag_handle && _frame.operation != Operation::rotate &&
                                      _frame.edge_direction == amal::vec2{} && appearance.drag_pivot_diameter > 0.f;
@@ -726,7 +726,6 @@ namespace auik::guizmo
             const f32 radius = appearance.rotation_radius + appearance.view_ring_gap;
             const f32 half_width = appearance.view_ring_width * 0.5f;
             const f32 outline_width = amal::max(0.f, appearance.view_ring_outline_width);
-            const f32 inner = radius - half_width, outer = radius + half_width;
             u32 color = tint(appearance.view_ring, view_ring_handle);
             const u32 border_color = appearance.view_ring_outline_color;
             u32 outline = tint({border_color, border_color, border_color}, view_ring_handle);
@@ -736,27 +735,18 @@ namespace auik::guizmo
                 outline = (outline & 0x00ffffffu) |
                           ((((outline >> 24u) * (appearance.locked_alpha >> 24u) + 127u) / 255u) << 24u);
             }
-            if (outline_width == 0.f) outline = color;
-            // One continuous strip keeps the two fringes and the colored band from overlapping.
-            const f32 transition = amal::min({0.35f, outline_width * 0.5f, half_width * 0.5f});
-            const f32 radii[] = {inner - outline_width - 1.f, inner - outline_width,      inner - transition,
-                                 inner + transition,          outer - transition,         outer + transition,
-                                 outer + outline_width,       outer + outline_width + 1.f};
-            const u32 transparent = outline & 0x00ffffffu;
-            const u32 colors[] = {transparent, outline, outline, color, color, outline, outline, transparent};
+            auik::detail::StrokeSample samples[8];
+            auik::detail::fill_stroke_samples(samples, half_width * 2.f, color, outline_width, outline);
             const u32 first = static_cast<u32>(_vertices.size());
             for (u32 i = 0; i < ring_segments; ++i)
             {
                 const f32 angle = 2.f * amal::pi<f32>() * i / ring_segments;
                 const amal::vec2 dir{amal::cos(angle), amal::sin(angle)};
                 for (u32 j = 0; j < ring_samples; ++j)
-                    append_vertex(_vertices, dir * amal::max(0.f, radii[j]), depth, colors[j], clip_id());
+                    append_vertex(_vertices, dir * amal::max(0.f, radius + samples[j].offset), depth, samples[j].color, clip_id());
                 const u32 current = first + ring_samples * i;
                 const u32 next = first + ring_samples * ((i + 1u) % ring_segments);
-                for (u32 j = 0; j + 1u < ring_samples; ++j)
-                    for (u32 index :
-                         {current + j, current + j + 1u, next + j, current + j + 1u, next + j + 1u, next + j})
-                        _indices.push_back(index);
+                auik::detail::append_stroke_strip_indices(_indices, current, next, ring_samples);
             }
         }
         if (show_drag_pivot)
